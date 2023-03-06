@@ -10,10 +10,13 @@ export const tynat: Typ = ({ tag: 'nat' })
 export type TyBool = { tag: 'bool' }
 export const tybool: Typ = ({ tag: 'bool' })
 
+export type TyStr = { tag: 'str' }
+export const tystr: Typ = ({ tag: 'str' })
+
 export type TyArrow = { tag: 'arrow', left: Typ[], right: Typ }
 export const tyarrow = (left: Typ[], right: Typ): Typ => ({ tag: 'arrow', left, right })
 
-export type Typ = TyNat | TyBool | TyArrow
+export type Typ = TyNat | TyBool | TyArrow | TyStr
 
 // Expressions
 
@@ -46,6 +49,15 @@ export const ife = (e1: Exp, e2: Exp, e3: Exp): Exp =>
   ({ tag: 'if', e1, e2, e3 })
 
 // need to add more expressions
+
+//test expressions
+export const e1 = plus(num(1), num(2))
+export const e2 = eq(num(1), num(2))
+export const e3 = and(bool(true), bool(false))
+export const e4 = or(bool(true), bool(false))
+export const e5 = ife(bool(true), num(1), num(2))
+export const e6 = not(bool(true))
+export const e7 = evar('apple')
 
 export type Exp = Var | Num | Bool | Not | Plus | Eq | And | Or | If
 
@@ -80,11 +92,11 @@ export function prettyExp (e: Exp): string {
     case 'var': return `${e.value}`
     case 'num': return `${e.value}`
     case 'bool': return e.value ? 'true' : 'false'
-    case 'not': return `not ${prettyExp(e.exp)}`
-    case 'plus': return `${prettyExp(e.e1)} + ${prettyExp(e.e2)}`
-    case 'eq': return `${prettyExp(e.e1)} == ${prettyExp(e.e2)}`
-    case 'and': return `${prettyExp(e.e1)} && ${prettyExp(e.e2)}`
-    case 'or': return `${prettyExp(e.e1)} || ${prettyExp(e.e2)}`
+    case 'not': return `(not ${prettyExp(e.exp)})`
+    case 'plus': return `(${prettyExp(e.e1)} + ${prettyExp(e.e2)})`
+    case 'eq': return `(${prettyExp(e.e1)} == ${prettyExp(e.e2)})`
+    case 'and': return `(${prettyExp(e.e1)} && ${prettyExp(e.e2)})`
+    case 'or': return `(${prettyExp(e.e1)} || ${prettyExp(e.e2)})`
     case 'if': return `if ${prettyExp(e.e1)} then ${prettyExp(e.e2)} else ${prettyExp(e.e3)}`
   }
 }
@@ -101,6 +113,7 @@ export function prettyTyp (t: Typ): string {
   switch (t.tag) {
     case 'nat': return 'nat'
     case 'bool': return 'bool'
+    case 'str': return 'str'
     case 'arrow': return `${prettyTypHelper(t.left)} -> ${prettyTyp(t.right)}`
   }
 }
@@ -145,6 +158,10 @@ export function extendEnv (x: string, v: Value, env: Env): Env {
   return ret
 }
 
+export function makeEmptyEnv (): Env {
+  return new Map()
+}
+
 /** A context maps names of variables to their types. */
 export type Ctx = Map<string, Typ>
 
@@ -155,6 +172,9 @@ export function extendCtx (x: string, t: Typ, ctx: Ctx): Ctx {
   return ret
 }
 
+export function makeEmptyContext (): Ctx {
+  return new Map()
+}
 /**
  * *** Substitution ***********************************************************/
 
