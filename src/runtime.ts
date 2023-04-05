@@ -1,72 +1,76 @@
-import * as C from './core'
+import * as L from './core'
 
-/** The output of our programs: a list of strings that our program printed. */
-export type Output = string[]
+function throwArityError (fn: string, expected: number, found: number): never {
+  throw new Error(`Runtime error: '${fn}' expects ${expected} argument(s) but ${found} were given`)
+}
 
-// TODO: modify evaluate to also pass the current execution environment around.
-/** @returns the value that expression `e` evaluates to. */
-export function evaluate (e: C.Exp, env: C.Env): C.Value {
-  switch (e.tag) {
-    case 'var':
-      if(env.has(e.value)){
-        return env.get(e.value)!
-      }
-      else {
-        throw new Error("Var not initialized");
-      }
-    case 'num':
-      return e
-    case 'bool':
-      return e
-    case 'not': {
-      const v = evaluate(e.exp, env)
-      if (v.tag === 'bool') {
-        return C.bool(!v.value)
-      } else {
-        throw new Error(`Type error: negation expects a boolean but a ${v.tag} was given.`)
-      }
+function throwUnexpectedError (fn: string, expected: string, pos: number, found: string): never {
+  throw new Error(`Type error: primitive '${fn}' expected ${expected} in position ${pos} but a ${found} was given`)
+}
+
+function checkBinaryArithOp (op: string, args: L.Value[]): [number, number] {
+  if (args.length !== 2) {
+    throwArityError(op, 2, args.length)
+  } else {
+    const v1 = args[0]
+    const v2 = args[1]
+    if (v1.tag !== 'num') {
+      throwUnexpectedError(op, 'number', 1, v1.tag)
+    } else if (v2.tag !== 'num') {
+      throwUnexpectedError(op, 'number', 2, v2.tag)
+    } else {
+      return [v1.value, v2.value]
     }
-    case 'plus': {
-      const v1 = evaluate(e.e1, env)
-      const v2 = evaluate(e.e2, env)
-      if (v1.tag === 'num' && v2.tag === 'num') {
-        return C.num(v1.value + v2.value)
-      } else {
-        throw new Error(`Type error: plus expects two numbers but a ${v1.tag} and ${v2.tag} was given.`)
-      }
-    }
-    case 'eq': {
-      const v1 = evaluate(e.e1, env)
-      const v2 = evaluate(e.e2, env)
-      return C.bool(v1 === v2)
-    }
-    case 'and': {
-      const v1 = evaluate(e.e1, env)
-      const v2 = evaluate(e.e2, env)
-      if (v1.tag === 'bool' && v2.tag === 'bool') {
-        return C.bool(v1.value && v2.value)
-      } else {
-        throw new Error(`Type error: && expects two booleans but a ${v1.tag} and ${v2.tag} was given.`)
-      }
-    }
-    case 'or': {
-      const v1 = evaluate(e.e1, env)
-      const v2 = evaluate(e.e2, env)
-      if (v1.tag === 'bool' && v2.tag === 'bool') {
-        return C.bool(v1.value || v2.value)
-      } else {
-        throw new Error(`Type error: || expects two booleans but a ${v1.tag} and ${v2.tag} was given.`)
-      }
-    }
-    case 'if': {
-      const v = evaluate(e.e1, env)
-      if (v.tag === 'bool') {
-        return v.value ? evaluate(e.e2, env) : evaluate(e.e3, env)
-      } else {
-        throw new Error(`Type error: 'if' expects a boolean in guard position but a ${v.tag} was given.`)
-      }
-    }
-    
   }
 }
 
+function plusPrim (args: L.Value[]): L.Value {
+  const [n1, n2] = checkBinaryArithOp('+', args)
+  return L.num(n1 + n2)
+}
+
+function subPrim (args: L.Value[]): L.Value {
+  const [n1, n2] = checkBinaryArithOp('-', args)
+  return L.num(n1 - n2)
+}
+
+function timesPrim (args: L.Value[]): L.Value {
+  const [n1, n2] = checkBinaryArithOp('*', args)
+  return L.num(n1 * n2)
+}
+
+function divPrim (args: L.Value[]): L.Value {
+  const [n1, n2] = checkBinaryArithOp('/', args)
+  return L.num(n1 / n2)
+}
+
+function zeroPrim (args: L.Value[]): L.Value {
+  if (args.length !== 1) {
+    throwArityError('zero?', 1, args.length)
+  } else {
+    const v = args[0]
+    if (v.tag !== 'num') {
+      throwUnexpectedError('zero?', 'number', 1, v.tag)
+    } else {
+      return L.bool(v.value === 0)
+    }
+  }
+}
+
+export function makeInitialEnv (): L.Env {
+  return new L.Env(new Map([
+    ['+', L.prim('+', plusPrim)],
+    ['-', L.prim('-', subPrim)],
+    ['*', L.prim('*', timesPrim)],
+    ['/', L.prim('/', divPrim)],
+    ['zero?', L.prim('zero?', zeroPrim)]
+  ]))
+}
+
+export const initialCtx: L.Ctx = new Map([
+  ['+', L.tyarr([L.tynat, L.tynat], L.tynat)],
+  ['-', L.tyarr([L.tynat, L.tynat], L.tynat)],
+  ['*', L.tyarr([L.tynat, L.tynat], L.tynat)],
+  ['/', L.tyarr([L.tynat, L.tynat], L.tynat)],
+  ['zero?', L.tyarr([L.tynat], L.tybool)]
+])
