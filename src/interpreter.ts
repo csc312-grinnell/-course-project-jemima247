@@ -1,11 +1,12 @@
 import * as L from './core'
-import { typecheck } from './typechecker'
+// import { typecheck } from './typechecker'
 
 /** The output of our programs: a list of strings that our program printed. */
 export type Output = string[]
 
 /** @returns the value that expression `e` evaluates to. */
 export function evaluate (env: L.Env, e: L.Exp): L.Value {
+  console.log(env)
   switch (e.tag) {
     case 'var': {
       if (env.has(e.value)) {
@@ -21,40 +22,40 @@ export function evaluate (env: L.Env, e: L.Exp): L.Value {
     case 'lam':
       return L.closure(e.param, e.body, env)
     case 'not': {
-        const v = evaluate(env, e.exp)
-        if (v.tag === 'bool') {
-            return L.bool(!v.value)
-        } 
-        throw new Error(`Type error: 'not' expects a boolean in guard position but a ${v.tag} was given.`)
+      const v = evaluate(env, e.exp)
+      if (v.tag === 'bool') {
+        return L.bool(!v.value)
+      }
+      throw new Error(`Type error: 'not' expects a boolean in guard position but a ${v.tag} was given.`)
     }
     case 'eq': {
-        const v = evaluate(env, e.e1)
-        const w = evaluate(env, e.e2)
-        return L.bool(v.tag === 'bool' && v.tag === w.tag && v.value === w.value)
+      const v = evaluate(env, e.e1)
+      const w = evaluate(env, e.e2)
+      return L.bool(v.tag === 'bool' && v.tag === w.tag && v.value === w.value)
     }
     case 'plus': {
-        const v = evaluate(env, e.e1)
-        const w = evaluate(env, e.e2)
-        if (v.tag === 'num' && w.tag === 'num') {
-            return L.num(v.value + w.value)
-        } 
-        throw new Error (`Type error: 'plus' expects two numbers in guard position but a ${v.tag} and a ${w.tag} were given.`)
+      const v = evaluate(env, e.e1)
+      const w = evaluate(env, e.e2)
+      if (v.tag === 'num' && w.tag === 'num') {
+        return L.num(v.value + w.value)
+      }
+      throw new Error(`Type error: 'plus' expects two numbers in guard position but a ${v.tag} and a ${w.tag} were given.`)
     }
     case 'and': {
-        const v = evaluate(env, e.e1)
-        const w = evaluate(env, e.e2)
-        if (v.tag === 'bool' && w.tag === 'bool') {
-            return L.bool(v.value && w.value)
-        }
-        throw new Error (`Type error: 'and' expects two booleans in guard position but a ${v.tag} and a ${w.tag} were given.`)
+      const v = evaluate(env, e.e1)
+      const w = evaluate(env, e.e2)
+      if (v.tag === 'bool' && w.tag === 'bool') {
+        return L.bool(v.value && w.value)
+      }
+      throw new Error(`Type error: 'and' expects two booleans in guard position but a ${v.tag} and a ${w.tag} were given.`)
     }
     case 'or': {
-        const v = evaluate(env, e.e1)
-        const w = evaluate(env, e.e2)
-        if (v.tag === 'bool' && w.tag === 'bool') {
-            return L.bool(v.value || w.value)
-        }
-        throw new Error (`Type error: 'or' expects two booleans in guard position but a ${v.tag} and a ${w.tag} were given.`)
+      const v = evaluate(env, e.e1)
+      const w = evaluate(env, e.e2)
+      if (v.tag === 'bool' && w.tag === 'bool') {
+        return L.bool(v.value || w.value)
+      }
+      throw new Error(`Type error: 'or' expects two booleans in guard position but a ${v.tag} and a ${w.tag} were given.`)
     }
     case 'app': {
       const head = evaluate(env, e.head)
@@ -79,7 +80,6 @@ export function evaluate (env: L.Env, e: L.Exp): L.Value {
         throw new Error(`Type error: 'if' expects a boolean in guard position but a ${v.tag} was given.`)
       }
     }
-    
     // case 'rec': {
     //   let expMap= new Map(e.fields)
     //   let fields = new Map<string, L.Value>()
@@ -104,7 +104,7 @@ export function evaluate (env: L.Env, e: L.Exp): L.Value {
 }
 
 /** @returns the result of executing program `prog` under environment `env` */
-export function execute(env: L.Env, prog: L.Prog): Output {
+export function execute (env: L.Env, prog: L.Prog): Output {
   const output: Output = []
   for (const s of prog) {
     switch (s.tag) {

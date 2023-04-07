@@ -10,7 +10,7 @@
     "lint": "npx eslint src/**/*.ts test/**/*.ts",
     "test": "npx jest"
   },
-  "author": "(Insert your name here!)",
+  "author": "(Jemzy)",
   "license": "Unlicense",
   "devDependencies": {
     "@types/jest": "^29.2.6",

@@ -24,23 +24,43 @@ export function typecheck (ctx: L.Ctx, e: L.Exp): L.Typ {
       return L.tyarr([e.typ], outTy)
     }
     case 'not': {
-      const t = typecheck(ctx, e.)
+      const t = typecheck(ctx, e.exp)
       if (t.tag !== 'bool') {
         throw new Error(`Type error: expected bool but found ${L.prettyTyp(t)}`)
       }
-      break
+      return L.tybool
     }
     case 'plus': {
-      break
+      const t1 = typecheck(ctx, e.e1)
+      const t2 = typecheck(ctx, e.e2)
+      if (t1.tag !== 'nat' || t2.tag !== 'nat') {
+        throw new Error(`Type error: expected nat but found ${L.prettyTyp(t1)} and ${L.prettyTyp(t2)}`)
+      }
+      return L.tynat
     }
     case 'eq': {
-      break
+      const t1 = typecheck(ctx, e.e1)
+      const t2 = typecheck(ctx, e.e2)
+      if (t1.tag !== 'bool' || t2.tag !== 'bool') {
+        throw new Error(`Type error: expected bool but found ${L.prettyTyp(t1)} and ${L.prettyTyp(t2)}`)
+      }
+      return L.tybool
     }
     case 'and': {
-      break
+      const t1 = typecheck(ctx, e.e1)
+      const t2 = typecheck(ctx, e.e2)
+      if (t1.tag !== 'bool' || t2.tag !== 'bool') {
+        throw new Error(`Type error: expected bool but found ${L.prettyTyp(t1)} and ${L.prettyTyp(t2)}`)
+      }
+      return L.tybool
     }
     case 'or': {
-      break
+      const t1 = typecheck(ctx, e.e1)
+      const t2 = typecheck(ctx, e.e2)
+      if (t1.tag !== 'bool' || t2.tag !== 'bool') {
+        throw new Error(`Type error: expected bool but found ${L.prettyTyp(t1)} and ${L.prettyTyp(t2)}`)
+      }
+      return L.tybool
     }
     case 'app': {
       const thead = typecheck(ctx, e.head)

@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
+
 /* eslint-disable spaced-comment */
 /** *** Abstract Syntax Tree ***************************************************/
 
@@ -89,6 +91,74 @@ export const sassign = (loc: Exp, exp: Exp): Stmt => ({ tag: 'assign', loc, exp 
 // Programs
 export type Prog = Stmt[]
 
+/**
+ * *** Environments and Contexts **********************************************/
+
+/** *** Runtime Environment ****************************************************/
+
+export class Env {
+  private outer?: Env
+  private bindings: Map<string, Value>
+
+  constructor (bindings?: Map<string, Value>) {
+    this.bindings = (bindings === null) ? bindings : new Map()
+  }
+
+  has (x: string): boolean {
+    return this.bindings.has(x) || (this.outer?.has(x) ?? false)
+  }
+
+  get (x: string): Value {
+    if (this.bindings.has(x)) {
+      return this.bindings.get(x)!
+    } else if (this.outer !== undefined) {
+      return this.outer.get(x)
+    } else {
+      throw new Error(`Runtime error: unbound variable '${x}'`)
+    }
+  }
+
+  set (x: string, v: Value): void {
+    if (this.bindings.has(x)) {
+      throw new Error(`Runtime error: redefinition of variable '${x}'`)
+    } else {
+      this.bindings.set(x, v)
+    }
+  }
+
+  update (x: string, v: Value): void {
+    this.bindings.set(x, v)
+    if (this.bindings.has(x)) {
+      this.bindings.set(x, v)
+    } else if (this.outer !== undefined) {
+      this.outer.update(x, v)
+    } else {
+      throw new Error(`Runtime error: unbound variable '${x}'`)
+    }
+  }
+
+  extend1 (x: string, v: Value): Env {
+    const ret = new Env()
+    ret.outer = this
+    ret.bindings = new Map([[x, v]])
+    return ret
+  }
+}
+
+/** A context maps names of variables to their types. */
+export type Ctx = Map<string, Typ>
+
+/** @returns a copy of `ctx` with the additional binding `x:t` */
+export function extendCtx (x: string, t: Typ, ctx: Ctx): Ctx {
+  const ret = new Map(ctx.entries())
+  ret.set(x, t)
+  return ret
+}
+
+export function makeEmptyContext (): Ctx {
+  return new Map()
+}
+
 /** *** Pretty-printer *********************************************************/
 
 /** @returns a pretty version of the expression `e`, suitable for debugging. */
@@ -98,13 +168,13 @@ export function prettyExp (e: Exp): string {
     case 'num': return `${e.value}`
     case 'bool': return e.value ? 'true' : 'false'
     case 'not': return `(not ${prettyExp(e.exp)})`
-    case 'plus': return `(plus ${prettyExp(e.e1)} ${prettyExp(e.e2)})`
+    case 'plus': return `(+ ${prettyExp(e.e1)} ${prettyExp(e.e2)})`
     case 'eq': return `(eq ${prettyExp(e.e1)} ${prettyExp(e.e2)})`
     case 'lam': return `(lambda ${e.param} ${prettyTyp(e.typ)} ${prettyExp(e.body)})`
     case 'app': return `(${prettyExp(e.head)} ${e.args.map(prettyExp).join(' ')})`
     case 'if': return `(if ${prettyExp(e.e1)} ${prettyExp(e.e2)} ${prettyExp(e.e3)})`
-    case 'and': return `(and ${prettyExp(e.e1)} ${prettyExp(e.e2)})`
-    case 'or': return `(or ${prettyExp(e.e1)} ${prettyExp(e.e2)})`
+    case 'and': return `(&& ${prettyExp(e.e1)} ${prettyExp(e.e2)})`
+    case 'or': return `(|| ${prettyExp(e.e1)} ${prettyExp(e.e2)})`
   }
 }
 
@@ -151,89 +221,8 @@ export function typEquals (t1: Typ, t2: Typ): boolean {
   } else if (t1.tag === 'arr' && t2.tag === 'arr') {
     return typEquals(t1.output, t2.output) &&
       t1.inputs.length === t2.inputs.length &&
-      t1.inputs.every((t, i) => typEquals(t, t2.inputs[i])) 
+      t1.inputs.every((t, i) => typEquals(t, t2.inputs[i]))
   } else {
     return false
   }
 }
-
-/**
- * *** Environments and Contexts **********************************************/
-
-/** *** Runtime Environment ****************************************************/
-
-export class Env {
-  private outer?: Env
-  private bindings: Map<string, Value>
-
-  constructor (bindings?: Map<string, Value>) {
-    this.bindings = bindings || new Map()
-  }
-
-  has (x: string): boolean {
-    return this.bindings.has(x) || (this.outer?.has(x))
-  }
-
-  get (x: string): Value {
-    if (this.bindings.has(x)) {
-      return this.bindings.get(x)!
-    } else if (this.outer !== undefined) {
-      return this.outer.get(x)
-    } else {
-      throw new Error(`Runtime error: unbound variable '${x}'`)
-    }
-  }
-
-  set (x: string, v: Value): void {
-    if (this.bindings.has(x)) {
-      throw new Error(`Runtime error: redefinition of variable '${x}'`)
-    } else {
-      this.bindings.set(x, v)
-    }
-  }
-
-  update (x: string, v: Value): void {
-    this.bindings.set(x, v)
-    if (this.bindings.has(x)) {
-      this.bindings.set(x, v)
-    } else if (this.outer !== undefined) {
-      return this.outer.update(x, v)
-    } else {
-      throw new Error(`Runtime error: unbound variable '${x}'`)
-    }
-  }
-
-  extend1 (x: string, v: Value): Env {
-    const ret = new Env()
-    ret.outer = this
-    ret.bindings = new Map([[x, v]])
-    return ret
-  }
-}
-
-/** A context maps names of variables to their types. */
-export type Ctx = Map<string, Typ>
-
-/** @returns a copy of `ctx` with the additional binding `x:t` */
-export function extendCtx (x: string, t: Typ, ctx: Ctx): Ctx {
-  const ret = new Map(ctx.entries())
-  ret.set(x, t)
-  return ret
-}
-
-export function makeEmptyContext (): Ctx {
-  return new Map()
-}
-// /**
-//  * *** Substitution ***********************************************************/
-
-// /**
-//  * @param v the value that is being substituted
-//  * @param x the variable being replaced
-//  * @param e the expression in which substitution occurs
-//  * @returns `e` but with every occurrence of `x` replaced with `v`
-//  */
-// export function substitute (v: Value, x: string, e: Exp): Exp {
-//   // TODO: implement me!
-//   return e
-// }

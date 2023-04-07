@@ -57,31 +57,6 @@ export function translateExp (e: S.Sexp): L.Exp {
       } else {
         return L.ife(translateExp(args[0]), translateExp(args[1]), translateExp(args[2]))
       }
-    // } else if (head.tag === 'atom' && head.value === 'rec') {
-    //   if (args.length % 2 !== 0) {
-    //     throw new Error(`Parse error: 'rec' expects an even number of arguments but ${args.length} were given`)
-    //   } else {
-    //     const outMap = new Map<string, L.Exp>()
-    //     for (let i = 0; i < args.length; i += 2) {
-    //       const hold = args[i]
-    //       if (hold.tag !== 'atom') {
-    //         throw new Error(`Parse error: 'rec' expects its ${i}th argument to be an identifier but ${S.sexpToString(args[i])} was given`)
-    //       } else {
-    //         outMap.set(hold.value, translateExp(args[i + 1]))
-    //       }
-    //     }
-    //     return L.rec(outMap)
-    //   }
-
-    // } else if (head.tag === 'atom' && head.value === 'field') {
-    //   if (args.length !== 2) {
-    //     throw new Error(`Parse error: 'field' expects 2 arguments but ${args.length} were given`)
-    //   } else if (args[1].tag === 'atom') {
-    //     const hold = args[1];
-    //     return L.field(translateExp(args[0]), hold.value)
-    //   } else {
-    //     throw new Error(`Parse error: 'field' expects its second argument to be an identifier but ${S.sexpToString(args[1])} was given`)
-    //   }
     } else {
       return L.app(translateExp(head), args.map(translateExp))
     }
