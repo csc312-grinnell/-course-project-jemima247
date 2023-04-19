@@ -19,6 +19,26 @@ export function translateTyp (e: S.Sexp): L.Typ {
       } else {
         return L.tyarr(args.slice(0, args.length - 1).map(translateTyp), translateTyp(args[args.length - 1]))
       }
+    } else if (head.tag === 'atom' && head.value === 'list') {
+      if (args.length === 0) {
+        return L.tylist([])
+      } else {
+        return L.tylist(args.map(translateTyp))
+      }
+    } else if (head.tag === 'atom' && head.value === 'cons') {
+      if (args.length !== 2) {
+        throw new Error(`Parse error: 'cons' expects 2 arguments but ${args.length} were given`)
+      } else {
+        return L.typair(translateTyp(args[0]), translateTyp(args[1]))
+      }
+    } else if (head.tag === 'atom' && head.value === 'forall') {
+      if (args.length !== 1) {
+        throw new Error(`Parse error: 'forall' expects 1 argument but ${args.length} were given`)
+      } else if (args[0].tag !== 'atom') {
+        throw new Error(`Parse error: 'forall' expects an id name but '${S.sexpToString(args[0])}' was given`)
+      } else {
+        return L.typoly(args[0].value)
+      }
     } else {
       throw new Error(`Parse error: unknown type '${S.sexpToString(e)}'`)
     }
@@ -56,6 +76,48 @@ export function translateExp (e: S.Sexp): L.Exp {
         throw new Error(`Parse error: 'if' expects 3 arguments but ${args.length} were given`)
       } else {
         return L.ife(translateExp(args[0]), translateExp(args[1]), translateExp(args[2]))
+      }
+    } else if (head.tag === 'atom' && head.value === 'list') {
+        if (args.length === 0) {
+          return L.list([])
+        } else {
+          return L.list(args.map(translateExp))
+        }
+    } else if (head.tag === 'atom' && head.value === 'head') {
+      if (args.length !== 1) {
+        throw new Error(`Parse error: 'head' expects 1 argument but ${args.length} were given`)
+      } else {
+        return L.head(translateExp(args[0]))
+      }
+    } else if (head.tag === 'atom' && head.value === 'tail') {
+      if (args.length !== 1) {
+        throw new Error(`Parse error: 'tail' expects 1 argument but ${args.length} were given`)
+      } else {
+        return L.tail(translateExp(args[0]))
+      }
+    } else if (head.tag === 'atom' && head.value === 'cons') {
+      if (args.length !== 2) {
+        throw new Error(`Parse error: 'cons' expects 2 argument but ${args.length} were given`)
+      } else {
+        return L.pair(translateExp(args[0]), translateExp(args[1]))
+      }
+    } else if (head.tag === 'atom' && head.value === 'fst') {
+      if (args.length !== 1) {
+        throw new Error(`Parse error: 'fst' expects 1 argument but ${args.length} were given`)
+      } else {
+        return L.fst(translateExp(args[0]))
+      }
+    } else if (head.tag === 'atom' && head.value === 'snd') {
+      if (args.length !== 1) {
+        throw new Error(`Parse error: 'snd' expects 1 argument but ${args.length} were given`)
+      } else {
+        return L.snd(translateExp(args[0]))
+      }
+    } else if (head.tag === 'atom' && head.value === 'match') {
+      if (args.length !== 2) {
+        throw new Error(`Parse error: 'match' expects 2 argument but ${args.length} were given`)
+      } else {
+        return L.match(translateExp(args[0]), translateExp(args[1]))
       }
     } else {
       return L.app(translateExp(head), args.map(translateExp))

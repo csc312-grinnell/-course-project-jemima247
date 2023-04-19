@@ -89,6 +89,72 @@ export function typecheck (ctx: L.Ctx, e: L.Exp): L.Typ {
       }
       return t3
     }
+    case 'list': {
+      if (e.exps.length === 0) {
+        const emptyList: L.Typ[] = []
+        return L.tylist(emptyList)
+      }
+      else{
+        const t = typecheck(ctx, e.exps[0])
+        const tlist = e.exps.map(exp => typecheck(ctx, exp))
+        tlist.forEach((t2) => {
+          if (!L.typEquals(t, t2)) {
+            throw new Error(`Type error: expected ${L.prettyTyp(t)} but found ${L.prettyTyp(t2)}`)
+          }
+        })
+        return L.tylist(tlist)
+      }
+    }
+    case 'head': {
+      const t = typecheck(ctx, e.exp)
+      if (t.tag !== 'list') {
+        throw new Error(`Type error: expected list but found ${L.prettyTyp(t)}`) 
+      } else {
+        return t.typ[0]
+      }
+    }
+    case 'tail': {
+      const t = typecheck(ctx, e.exp)
+      if (t.tag !== 'list') {
+        throw new Error(`Type error: expected list but found ${L.prettyTyp(t)}`) 
+      } else {
+        return t // same thing no?
+      }
+    }
+    case 'pair': {
+      const t1 = typecheck(ctx, e.exp1)
+      const t2 = typecheck(ctx, e.exp2)
+      return L.typair(t1, t2)
+    }
+    case 'fst': {
+      const t = typecheck(ctx, e.exp)
+      if (t.tag !== 'pair') {
+        throw new Error(`Type error: expected pair but found ${L.prettyTyp(t)}`) 
+      } else {
+        return t.typ1
+      }
+    }
+    case 'snd': {
+      const t = typecheck(ctx, e.exp)
+      if (t.tag !== 'pair') {
+        throw new Error(`Type error: expected pair but found ${L.prettyTyp(t)}`) 
+      } else {
+        return t.typ2
+      }
+    }
+    case 'match': {
+      const t = typecheck(ctx, e.exp)
+      const lsT = typecheck(ctx, e.ls)
+      if (lsT.tag !== 'list') {
+        throw new Error(`Type error: expected list but found ${L.prettyTyp(lsT)}`) 
+      } else if (lsT.typ[0].tag !== 'pair') {
+        throw new Error(`Type error: expected list of pairs but found list of ${L.prettyTyp(lsT.typ[0])}`) 
+      } else if (!L.typEquals(t, lsT.typ[0].typ1)) {
+        throw new Error(`Type error: expected ${L.prettyTyp(t)} at first position of pairs but found ${L.prettyTyp(lsT.typ[0].typ1)}`) 
+      } else {
+        return lsT.typ[0].typ2
+      }
+    }
   }
 }
 

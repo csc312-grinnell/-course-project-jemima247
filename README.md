@@ -78,7 +78,6 @@ I'll be implementing 'Haskell-simp' (Hs). Hs is a lazy, pure, functional program
 Some of the main features of Haskell that will be implemented in HS are:
 +   Purity
 +   Laziness
-+   Concurrency
 +   Lambda expressions
 +   Pattern matching 
 +   List comprehension

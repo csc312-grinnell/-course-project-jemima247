@@ -6,7 +6,6 @@ export type Output = string[]
 
 /** @returns the value that expression `e` evaluates to. */
 export function evaluate (env: L.Env, e: L.Exp): L.Value {
-  console.log(env)
   switch (e.tag) {
     case 'var': {
       if (env.has(e.value)) {
@@ -80,26 +79,75 @@ export function evaluate (env: L.Env, e: L.Exp): L.Value {
         throw new Error(`Type error: 'if' expects a boolean in guard position but a ${v.tag} was given.`)
       }
     }
-    // case 'rec': {
-    //   let expMap= new Map(e.fields)
-    //   let fields = new Map<string, L.Value>()
-    //   expMap.forEach( (e, k) => { fields.set(k, evaluate(env, e)) })
-    //   return L.recv(fields);
-    // }
-    // case 'field': {
-    //   // let vt = typecheck(env, e.record)
-    //   let v = evaluate(env, e.record)
-    //   if (v.tag === 'rec') {
-    //     if (v.fields.has(e.field)) {
-    //       return v.fields.get(e.field)!
-    //     } else {
-    //       throw new Error(`Runtime error: unbound field '${e.field}'`)
-    //     }
-    //   }
-    //   else {
-    //     throw new Error(`Runtime error: expected record, but found '${L.prettyExp(e.record)}'`)
-    //   }
-    // }
+    case 'list': {
+      return e
+    }
+    case 'head': {
+      const v = evaluate(env, e.exp)
+      if (v.tag === 'list') {
+        if (v.exps.length === 0) {
+          throw new Error(`Runtime error: cannot take head of empty list`)
+        } else {
+          return evaluate(env, v.exps[0])
+        }
+      } else {
+        throw new Error(`Type error: 'head' expects a list in guard position but a ${v.tag} was given.`)
+      }
+    }
+    case 'tail': {
+      const v = evaluate(env, e.exp)
+      if (v.tag === 'list') {
+        if (v.exps.length === 0) {
+          throw new Error(`Runtime error: cannot take tail of empty list`)
+        } else {
+          return evaluate(env, L.list(v.exps.slice(1)))
+        }
+      } else {
+        throw new Error(`Type error: 'tail' expects a list in guard position but a ${v.tag} was given.`)
+      }
+    }
+    case 'pair': {
+      return e
+    }
+    case 'fst': {
+      const v = evaluate(env, e.exp)
+      if (v.tag === 'pair') {
+        return evaluate(env, v.exp1)
+      } else {
+        throw new Error(`Type error: 'fst' expects a pair in guard position but a ${v.tag} was given.`)
+      }
+    }
+    case 'snd': {
+      const v = evaluate(env, e.exp)
+      if (v.tag === 'pair') {
+        return evaluate(env, v.exp2)
+      } else {
+        throw new Error(`Type error: 'snd' expects a pair in guard position but a ${v.tag} was given.`)
+      }
+    }
+    case 'match': {
+      const x = evaluate(env, e.exp)
+      const d = evaluate(env, e.ls)
+      if (d.tag === 'list') {
+        d.exps.forEach(e => {
+          const holdV = evaluate(env, e)
+          if (holdV.tag === 'pair') {
+            const v = evaluate(env, holdV.exp1)
+            if (L.valueEquals(v, x)) {
+              return evaluate(env, holdV.exp2)
+            }
+          } else {
+            
+            throw new Error(`Type error: 'match' expects a list of pair but a list of ${d.tag} was given.`)
+          }
+        })
+        console.log(x)
+        console.log(d)
+        throw new Error(`Runtime error: 'match' failed to match`)
+      } else {
+        throw new Error(`Type error: 'match' expects a list of pair but a ${d.tag} was given.`)
+      }
+    }
   }
 }
 

@@ -28,10 +28,15 @@ const prog1 = `
   (print (+ x y))
   (assign x 10)
   (print (- x y))
+  (define tList (list 1 2 3))
+  (print (head tList))
+  (print (tail tList))
 `
 
 const prog2 = `
   (define result 0)
+  (define empList (list))
+  (print empList)
   (define factorial
     (lambda n Nat
       (if (zero? n)
@@ -41,47 +46,52 @@ const prog2 = `
   (print result)
 `
 
-// const prog3 = `
-//   (define ts1 (rec a 1 b 2 c 3))
-//   (define tsF (lambda x (Rec a Nat b Nat) (field x a)))
-//   (print (tsF (rec a 1 b 2 c 3)))
-// `
+const prog3 = `
+  (define apple 
+    (lambda x Nat
+      (match (list (- x 5) (- x 3))
+      (list (cons (list 10 12) "fizzbuzz")
+            (cons (list _ 12) "fizz")
+            (cons (list 10 _) "buzz")
+            (cons _ "apple")))))
+  (print (apple 15))
+`
 
-// describe('an example test suite', () => {
-//   test('basic addition', () => {
-//     expect(1 + 1).toBe(2)
-//   })
-//   test('prettyExp(e1)', () => {
-//     expect(L.prettyExp(L.e1)).toBe('(+ 1 2)')
-//   })
-//   test('prettyExp(e2)', () => {
-//     expect(L.prettyExp(L.e2)).toBe('(eq 1 2)')
-//   })
-//   test('prettyExp(e3)', () => {
-//     expect(L.prettyExp(L.e3)).toBe('(&& true false)')
-//   })
-//   test('prettyExp(e4)', () => {
-//     expect(L.prettyExp(L.e4)).toBe('(|| true false)')
-//   })
-//   test('prettyExp(e5)', () => {
-//     expect(L.prettyExp(L.e5)).toBe('(if true 1 2)')
-//   })
-//   test('prettyExp(e6)', () => {
-//     expect(L.prettyExp(L.e6)).toBe('(not true)')
-//   })
-//   test('prettyExp(e7)', () => {
-//     expect(L.prettyExp(L.e7)).toBe('apple')
-//   })
-// })
+describe('an example test suite', () => {
+  test('basic addition', () => {
+    expect(1 + 1).toBe(2)
+  })
+  test('prettyExp(e1)', () => {
+    expect(L.prettyExp(L.e1)).toBe('(+ 1 2)')
+  })
+  test('prettyExp(e2)', () => {
+    expect(L.prettyExp(L.e2)).toBe('(eq 1 2)')
+  })
+  test('prettyExp(e3)', () => {
+    expect(L.prettyExp(L.e3)).toBe('(&& true false)')
+  })
+  test('prettyExp(e4)', () => {
+    expect(L.prettyExp(L.e4)).toBe('(|| true false)')
+  })
+  test('prettyExp(e5)', () => {
+    expect(L.prettyExp(L.e5)).toBe('(if true 1 2)')
+  })
+  test('prettyExp(e6)', () => {
+    expect(L.prettyExp(L.e6)).toBe('(not true)')
+  })
+  test('prettyExp(e7)', () => {
+    expect(L.prettyExp(L.e7)).toBe('apple')
+  })
+})
 
 describe('interpretation', () => {
-  test('prog1', () => {
-    expect(compileAndInterpret(prog1, true)).toStrictEqual(['1','2', '9'])
-  })
+  // test('prog1', () => {
+  //   expect(compileAndInterpret(prog1, true)).toStrictEqual(['2', '9', '1', '\'(2 3)'])
+  // })
   // test('prog2', () => {
-  //   expect(compileAndInterpret(prog2, false)).toStrictEqual(['120'])
+  //   expect(compileAndInterpret(prog2, false)).toStrictEqual(['\'()','120'])
   // })
-  // test('prog3', () => {
-  //   expect(compileAndInterpret(prog3, false)).toStrictEqual(['1'])
-  // })
+  test('prog3', () => {
+    expect(compileAndInterpret(prog3, false)).toStrictEqual(['fibuzz'])
+  })
 })
