@@ -143,17 +143,7 @@ export function typecheck (ctx: L.Ctx, e: L.Exp): L.Typ {
       }
     }
     case 'match': {
-      const t = typecheck(ctx, e.exp)
-      const lsT = typecheck(ctx, e.ls)
-      if (lsT.tag !== 'list') {
-        throw new Error(`Type error: expected list but found ${L.prettyTyp(lsT)}`) 
-      } else if (lsT.typ[0].tag !== 'pair') {
-        throw new Error(`Type error: expected list of pairs but found list of ${L.prettyTyp(lsT.typ[0])}`) 
-      } else if (!L.typEquals(t, lsT.typ[0].typ1)) {
-        throw new Error(`Type error: expected ${L.prettyTyp(t)} at first position of pairs but found ${L.prettyTyp(lsT.typ[0].typ1)}`) 
-      } else {
-        return lsT.typ[0].typ2
-      }
+      break
     }
   }
 }

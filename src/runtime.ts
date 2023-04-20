@@ -44,14 +44,6 @@ function divPrim (args: L.Value[]): L.Value {
   return L.num(n1 / n2)
 }
 
-function holePrim (args: L.Value[]): L.Value {
-  if (args.length !== 0) {
-    throwArityError('_', 0, args.length)
-  } else {
-    return L.hole()
-  }
-}
-
 function zeroPrim (args: L.Value[]): L.Value {
   if (args.length !== 1) {
     throwArityError('zero?', 1, args.length)
@@ -71,7 +63,6 @@ export function makeInitialEnv (): L.Env {
     ['-', L.prim('-', subPrim)],
     ['*', L.prim('*', timesPrim)],
     ['/', L.prim('/', divPrim)],
-    ['_', L.prim('_', holePrim)],
     ['zero?', L.prim('zero?', zeroPrim)]
   ]))
 }
@@ -81,6 +72,5 @@ export const initialCtx: L.Ctx = new Map([
   ['-', L.tyarr([L.tynat, L.tynat], L.tynat)],
   ['*', L.tyarr([L.tynat, L.tynat], L.tynat)],
   ['/', L.tyarr([L.tynat, L.tynat], L.tynat)],
-  ['_', L.tyhole],
   ['zero?', L.tyarr([L.tynat], L.tybool)]
 ])

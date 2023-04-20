@@ -126,27 +126,7 @@ export function evaluate (env: L.Env, e: L.Exp): L.Value {
       }
     }
     case 'match': {
-      const x = evaluate(env, e.exp)
-      const d = evaluate(env, e.ls)
-      if (d.tag === 'list') {
-        d.exps.forEach(e => {
-          const holdV = evaluate(env, e)
-          if (holdV.tag === 'pair') {
-            const v = evaluate(env, holdV.exp1)
-            if (L.valueEquals(v, x)) {
-              return evaluate(env, holdV.exp2)
-            }
-          } else {
-            
-            throw new Error(`Type error: 'match' expects a list of pair but a list of ${d.tag} was given.`)
-          }
-        })
-        console.log(x)
-        console.log(d)
-        throw new Error(`Runtime error: 'match' failed to match`)
-      } else {
-        throw new Error(`Type error: 'match' expects a list of pair but a ${d.tag} was given.`)
-      }
+      break
     }
   }
 }

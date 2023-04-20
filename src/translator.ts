@@ -113,12 +113,12 @@ export function translateExp (e: S.Sexp): L.Exp {
       } else {
         return L.snd(translateExp(args[0]))
       }
-    } else if (head.tag === 'atom' && head.value === 'match') {
-      if (args.length !== 2) {
-        throw new Error(`Parse error: 'match' expects 2 argument but ${args.length} were given`)
-      } else {
-        return L.match(translateExp(args[0]), translateExp(args[1]))
-      }
+    // } else if (head.tag === 'atom' && head.value === 'match') {
+    //   if (args.length !== 2) {
+    //     throw new Error(`Parse error: 'match' expects 2 argument but ${args.length} were given`)
+    //   } else {
+    //     return L.match(translateExp(args[0]), translateExp(args[1]))
+    //   }
     } else {
       return L.app(translateExp(head), args.map(translateExp))
     }
