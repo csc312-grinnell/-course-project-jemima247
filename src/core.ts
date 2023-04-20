@@ -20,10 +20,22 @@ export const tylist = (typ: Typ[]): Typ => ({ tag: 'list', typ })
 export const typair = (typ1: Typ, typ2: Typ): Typ => ({ tag: 'pair', typ1, typ2 })
 export const typoly = (id: string): Typ => ({ tag: 'poly', id })
 
-// Expressions
 
+
+export type Pattern = Var | Hole | PatternList 
+// p :: = x | _ | (p1 ... pk) where the last case deals with patterns from expressions 
+// but to express this is a bit tricky
+// the var in a pattern is the name of the variable that will be bound to the value at its position
+
+export interface Hole { tag: 'hole' }
+export const hole = (): Hole => ({ tag: 'hole' })
+
+export interface PatternList { tag: 'list', patterns: Pattern[]}
+export const patternList = (patterns: Pattern[]): Pattern => ({ tag: 'list', patterns })
+
+// Expressions
 export type Exp = Var | Num | Bool | Not | Plus | Eq | And | Or | If | Lam | App | List | 
-                  Head | Tail | Match | Pair | Fst | Snd 
+                  Head | Tail | Match | Pair | Fst | Snd | Pattern
 
 export interface Var { tag: 'var', value: string }
 export const evar = (value: string): Var => ({ tag: 'var', value })
@@ -80,17 +92,6 @@ export const lam = (param: string, typ: Typ, body: Exp): Exp =>
 
 export interface App { tag: 'app', head: Exp, args: Exp[] }
 export const app = (head: Exp, args: Exp[]): Exp => ({ tag: 'app', head, args })
-
-// TODO: need to add more expressions
-
-// test expressions
-export const e1 = plus(num(1), num(2))
-export const e2 = eq(num(1), num(2))
-export const e3 = and(bool(true), bool(false))
-export const e4 = or(bool(true), bool(false))
-export const e5 = ife(bool(true), num(1), num(2))
-export const e6 = not(bool(true))
-export const e7 = evar('apple')
 
 // Values
 export type Value = Num | Bool | Closure | Prim | List | Pair 
