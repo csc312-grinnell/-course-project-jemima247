@@ -6,7 +6,6 @@ export type Output = string[]
 
 /** @returns the value that expression `e` evaluates to. */
 export function evaluate (env: L.Env, e: L.Exp): L.Value {
-  console.log(`Evaluating ${L.prettyExp(e)}`)
   switch (e.tag) {
     case 'var': {
       if (env.has(e.value)) {
@@ -69,7 +68,6 @@ export function evaluate (env: L.Env, e: L.Exp): L.Value {
           return evaluate(head.env.extend1(head.param, args[0]), head.body)
         }
       } else if (head.tag === 'prim') {
-        console.log("the fuck")
         return head.fn(args)
       } else {
         throw new Error(`Runtime error: expected closure or primitive, but found '${L.prettyValue(head)}'`)
@@ -139,7 +137,6 @@ export function evaluate (env: L.Env, e: L.Exp): L.Value {
       const v = evaluate(env, e.exp)
       // let holdI : number = 0
       e.pats.forEach((pat, i) => {
-        console.log(L.prettyPat(pat))
         const newenv = env.extend()
         if (patternMatch(v, newenv, pat)) {
           console.log("matched") 
@@ -198,8 +195,6 @@ function patternMatch(v: L.Value, env: L.Env, pat: L.Pattern): Boolean {
     }
     case 'var': {
       if (/\d+$/.test(pat.value) && v.tag === 'num') {
-        console.log("yes: " + L.prettyValue(v) + " " + pat.value)
-        console.log(v.value === parseInt(pat.value))
         return v.value === parseInt(pat.value)? true : false
       } else if (v.tag === 'bool' && (pat.value === 'true' || pat.value === 'false')) {
         return L.prettyValue(v) === pat.value? true : false
@@ -218,11 +213,9 @@ function patternMatch(v: L.Value, env: L.Env, pat: L.Pattern): Boolean {
         } else if (pat.patterns.length - 1 === v.values.length) {
           for (let i = 0; i < (pat.patterns.length - 1); i++) {
             if (!patternMatch(v.values[i], env, pat.patterns[i+1])) {
-              console.log("please no")
               return false
             }
           }
-          console.log("hi")
           return true
         }
       } else if (v.tag === "pair" && pat.patterns[0].tag === "var" && pat.patterns[0].value === "pair") {
