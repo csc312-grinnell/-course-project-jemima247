@@ -45,6 +45,18 @@ export function translateTyp (e: S.Sexp): L.Typ {
   }
 }
 
+export function translatePattern (e: S.Sexp): L.Pattern {
+  if (e.tag === 'atom') {
+    if (e.value === "_") {
+      return L.hole()
+    } else {
+      return L.evar(e.value)
+    }
+  } else {
+    return L.patternList(e.exps.map(translatePattern))
+  }
+}
+
 /** @returns the expression parsed from the given s-expression. */
 export function translateExp (e: S.Sexp): L.Exp {
   if (e.tag === 'atom') {
@@ -113,12 +125,32 @@ export function translateExp (e: S.Sexp): L.Exp {
       } else {
         return L.snd(translateExp(args[0]))
       }
-    // } else if (head.tag === 'atom' && head.value === 'match') {
-    //   if (args.length !== 2) {
-    //     throw new Error(`Parse error: 'match' expects 2 argument but ${args.length} were given`)
-    //   } else {
-    //     return L.match(translateExp(args[0]), translateExp(args[1]))
-    //   }
+    } else if (head.tag === 'atom' && head.value === 'match') {
+      if (args.length !== 2) {
+        throw new Error(`Parse error: 'match' expects 2 argument but ${args.length} were given`)
+      } else {
+        const expM = translateExp(args[0])
+        if (args[1].tag === 'atom'){
+          throw new Error(`Parse error: 'match' expects a list of pattern and expression but ${S.sexpToString(args[1])} was given`)
+        } else {
+          if (args[1].exps.length % 2 !== 0) {
+            throw new Error(`Parse error: 'match' expects an even number of list arguments but ${args[1].exps.length} were given`)
+          } else {
+            // const outMap = new Map<L.Pattern, L.Exp>() 
+            let holdp: L.Pattern[] = [];
+            let holdexp: L.Exp[] = [];
+            let listArgs = args[1].exps;
+            for (let i = 0; i < listArgs.length; i += 2) {
+              const holdpat = translatePattern(listArgs[i])
+              const exp = translateExp(listArgs[i + 1])
+              // outMap.set(holdp, exp)
+              holdp.push(holdpat)
+              holdexp.push(exp)
+            }
+            return L.match(expM, holdp, L.list(holdexp))
+          }
+        }
+      }
     } else {
       return L.app(translateExp(head), args.map(translateExp))
     }

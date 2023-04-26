@@ -6,10 +6,13 @@ export type Output = string[]
 
 /** @returns the value that expression `e` evaluates to. */
 export function evaluate (env: L.Env, e: L.Exp): L.Value {
+  console.log(`Evaluating ${L.prettyExp(e)}`)
   switch (e.tag) {
     case 'var': {
       if (env.has(e.value)) {
         return env.get(e.value)
+      } else if (e.value[0] == "\"") { 
+        return L.stringv(e.value)
       } else {
         throw new Error(`Runtime error: unbound variable '${e.value}'`)
       }
@@ -66,6 +69,7 @@ export function evaluate (env: L.Env, e: L.Exp): L.Value {
           return evaluate(head.env.extend1(head.param, args[0]), head.body)
         }
       } else if (head.tag === 'prim') {
+        console.log("the fuck")
         return head.fn(args)
       } else {
         throw new Error(`Runtime error: expected closure or primitive, but found '${L.prettyValue(head)}'`)
@@ -80,15 +84,19 @@ export function evaluate (env: L.Env, e: L.Exp): L.Value {
       }
     }
     case 'list': {
-      return e
+      let out: L.Value[] = [];
+      e.exps.forEach((v) => {
+        out.push(evaluate(env, v))
+      })
+      return L.listv(out)
     }
     case 'head': {
       const v = evaluate(env, e.exp)
       if (v.tag === 'list') {
-        if (v.exps.length === 0) {
+        if (v.values.length === 0) {
           throw new Error(`Runtime error: cannot take head of empty list`)
         } else {
-          return evaluate(env, v.exps[0])
+          return v.values[0]
         }
       } else {
         throw new Error(`Type error: 'head' expects a list in guard position but a ${v.tag} was given.`)
@@ -97,22 +105,24 @@ export function evaluate (env: L.Env, e: L.Exp): L.Value {
     case 'tail': {
       const v = evaluate(env, e.exp)
       if (v.tag === 'list') {
-        if (v.exps.length === 0) {
+        if (v.values.length === 0) {
           throw new Error(`Runtime error: cannot take tail of empty list`)
         } else {
-          return evaluate(env, L.list(v.exps.slice(1)))
+          return L.listv(v.values.slice(1))
         }
       } else {
         throw new Error(`Type error: 'tail' expects a list in guard position but a ${v.tag} was given.`)
       }
     }
     case 'pair': {
-      return e
+      const v = evaluate(env, e.exp1)
+      const w = evaluate(env, e.exp2)
+      return L.pairv(v, w)
     }
     case 'fst': {
       const v = evaluate(env, e.exp)
       if (v.tag === 'pair') {
-        return evaluate(env, v.exp1)
+        return v.value1
       } else {
         throw new Error(`Type error: 'fst' expects a pair in guard position but a ${v.tag} was given.`)
       }
@@ -120,13 +130,30 @@ export function evaluate (env: L.Env, e: L.Exp): L.Value {
     case 'snd': {
       const v = evaluate(env, e.exp)
       if (v.tag === 'pair') {
-        return evaluate(env, v.exp2)
+        return v.value2
       } else {
         throw new Error(`Type error: 'snd' expects a pair in guard position but a ${v.tag} was given.`)
       }
     }
     case 'match': {
-      break
+      const v = evaluate(env, e.exp)
+      // let holdI : number = 0
+      e.pats.forEach((pat, i) => {
+        console.log(L.prettyPat(pat))
+        const newenv = env.extend()
+        if (patternMatch(v, newenv, pat)) {
+          console.log("matched") 
+          // holdI = i
+          const ls = evaluate(newenv, e.exps)
+          if (ls.tag !== 'list') {
+            throw new Error(`Type error: 'match' expects a list but a ${ls.tag} was given.`)
+          } else { 
+            console.log(ls.values[i])
+            return ls.values[i]
+          }
+        }
+      })
+      throw new Error(`Runtime error: 'match' did not match any patterns.`)
     }
   }
 }
@@ -163,3 +190,56 @@ export function execute (env: L.Env, prog: L.Prog): Output {
   }
   return output
 }
+function patternMatch(v: L.Value, env: L.Env, pat: L.Pattern): Boolean {  
+  console.log(L.prettyValue(v) + " " + L.prettyPat(pat))
+  switch (pat.tag) {
+    case 'hole': {
+      return true
+    }
+    case 'var': {
+      if (/\d+$/.test(pat.value) && v.tag === 'num') {
+        console.log("yes: " + L.prettyValue(v) + " " + pat.value)
+        console.log(v.value === parseInt(pat.value))
+        return v.value === parseInt(pat.value)? true : false
+      } else if (v.tag === 'bool' && (pat.value === 'true' || pat.value === 'false')) {
+        return L.prettyValue(v) === pat.value? true : false
+      } else if (pat.value !== 'list' && v.tag !== 'list') {
+        env.set(pat.value, v)
+        return true
+      } else {
+        return false
+      }
+    }
+    case 'list': {
+      if (v.tag === "list" && pat.patterns[0].tag === "var" && pat.patterns[0].value === "list") {
+        console.log("made into list case")
+        if (pat.patterns.length === 1 && v.values.length === 0) {
+          return true
+        } else if (pat.patterns.length - 1 === v.values.length) {
+          for (let i = 0; i < (pat.patterns.length - 1); i++) {
+            if (!patternMatch(v.values[i], env, pat.patterns[i+1])) {
+              console.log("please no")
+              return false
+            }
+          }
+          console.log("hi")
+          return true
+        }
+      } else if (v.tag === "pair" && pat.patterns[0].tag === "var" && pat.patterns[0].value === "pair") {
+        if (pat.patterns.length === 3) {
+          if (!patternMatch(v.value1, env, pat.patterns[1])) {
+            return false
+          }
+          if (!patternMatch(v.value2, env, pat.patterns[2])) {
+            return false
+          }
+          return true
+        }
+      } else {
+        throw new Error(`Runtime error: pattern matching only on list, pair, bool, num, and var`)
+      }
+    }
+  }
+  return false // why is this necessary?
+}
+

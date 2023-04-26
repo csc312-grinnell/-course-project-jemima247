@@ -4,8 +4,9 @@
 /** *** Abstract Syntax Tree ***************************************************/
 
 // Types
-export type Typ = TyNat | TyBool | TyArr | TyList | TyPoly | TyPair 
+export type Typ = TyStr | TyNat | TyBool | TyArr | TyList | TyPoly | TyPair 
 
+export interface TyStr { tag: 'str' }
 export interface TyNat { tag: 'nat' }
 export interface TyBool { tag: 'bool' }
 export interface TyArr { tag: 'arr', inputs: Typ[], output: Typ }
@@ -15,27 +16,24 @@ export interface TyPoly { tag: 'poly', id: string } // is this even needed?
 
 export const tybool: Typ = ({ tag: 'bool' })
 export const tynat: Typ = ({ tag: 'nat' })
+export const tystr: Typ = ({ tag: 'str' })
 export const tyarr = (inputs: Typ[], output: Typ): Typ => ({ tag: 'arr', inputs, output })
 export const tylist = (typ: Typ[]): Typ => ({ tag: 'list', typ })
 export const typair = (typ1: Typ, typ2: Typ): Typ => ({ tag: 'pair', typ1, typ2 })
 export const typoly = (id: string): Typ => ({ tag: 'poly', id })
 
-
-
+// Patterns
 export type Pattern = Var | Hole | PatternList 
-// p :: = x | _ | (p1 ... pk) where the last case deals with patterns from expressions 
-// but to express this is a bit tricky
-// the var in a pattern is the name of the variable that will be bound to the value at its position
 
 export interface Hole { tag: 'hole' }
-export const hole = (): Hole => ({ tag: 'hole' })
+export const hole = (): Pattern => ({ tag: 'hole' })
 
 export interface PatternList { tag: 'list', patterns: Pattern[]}
 export const patternList = (patterns: Pattern[]): Pattern => ({ tag: 'list', patterns })
 
 // Expressions
 export type Exp = Var | Num | Bool | Not | Plus | Eq | And | Or | If | Lam | App | List | 
-                  Head | Tail | Match | Pair | Fst | Snd | Pattern
+                  Head | Tail | Match | Pair | Fst | Snd 
 
 export interface Var { tag: 'var', value: string }
 export const evar = (value: string): Var => ({ tag: 'var', value })
@@ -79,8 +77,8 @@ export const fst = (exp: Exp): Exp => ({ tag: 'fst', exp })
 export interface Snd { tag: 'snd', exp: Exp } 
 export const snd = (exp: Exp): Exp => ({ tag: 'snd', exp })
 
-export interface Match { tag: 'match', exp: Exp, ls: Pair[] }
-export const match = (exp: Exp, ls: Pair[]): Exp => ({ tag: 'match', exp, ls})
+export interface Match { tag: 'match', exp: Exp, pats: Pattern[], exps: Exp }
+export const match = (exp: Exp, pats: Pattern[], exps: Exp): Exp => ({ tag: 'match', exp, pats, exps})
 
 export interface If { tag: 'if', e1: Exp, e2: Exp, e3: Exp }
 export const ife = (e1: Exp, e2: Exp, e3: Exp): Exp =>
@@ -94,14 +92,19 @@ export interface App { tag: 'app', head: Exp, args: Exp[] }
 export const app = (head: Exp, args: Exp[]): Exp => ({ tag: 'app', head, args })
 
 // Values
-export type Value = Num | Bool | Closure | Prim | List | Pair 
+export type Value = StringV | Num | Bool | Closure | Prim | ListV | PairV
 
+export interface StringV { tag: 'string', value: string }
 export interface Prim { tag: 'prim', name: string, fn: (args: Value[]) => Value }
 export interface Closure { tag: 'closure', param: string, body: Exp, env: Env }
+export interface ListV { tag: 'list', values: Value[] }
+export interface PairV { tag: 'pair', value1: Value, value2: Value }
 
+export const stringv = (value: string): StringV => ({ tag: 'string', value })
 export const prim = (name: string, fn: (args: Value[]) => Value): Prim => ({ tag: 'prim', name, fn })
 export const closure = (param: string, body: Exp, env: Env): Closure => ({ tag: 'closure', param, body, env })
-
+export const listv = (values: Value[]): ListV => ({ tag: 'list', values })
+export const pairv = (value1: Value, value2: Value): PairV => ({ tag: 'pair', value1, value2 })
 // Statements
 export type Stmt = SDefine | SPrint | SAssign 
 
@@ -169,6 +172,13 @@ export class Env {
     ret.bindings = new Map([[x, v]])
     return ret
   }
+
+  extend (): Env {
+    const ret = new Env()
+    ret.outer = this
+    ret.bindings = new Map()
+    return ret
+  }
 }
 
 /** A context maps names of variables to their types. */
@@ -187,6 +197,19 @@ export function makeEmptyContext (): Ctx {
 
 /** *** Pretty-printer *********************************************************/
 
+function printMatch(e: Match): string {
+  const main = prettyExp(e.exp)
+  const outs = e.exps
+  const out = ""
+  if (outs.tag === "list"){
+    return `(match ${main} (${e.pats.map((p, i) => prettyPat(p) + " " + prettyExp(outs.exps[i]) + "\n")}))`
+  } else {
+    throw new Error("Match must be a list")
+  }
+  
+}
+
+
 /** @returns a pretty version of the expression `e`, suitable for debugging. */
 export function prettyExp (e: Exp): string {
   switch (e.tag) {
@@ -204,32 +227,38 @@ export function prettyExp (e: Exp): string {
     case 'list': return `(list ${e.exps.map(prettyExp).join(' ')})`
     case 'head': return `(head ${prettyExp(e.exp)})`
     case 'tail': return `(tail ${prettyExp(e.exp)})`
-    case 'match': return `(match ${prettyExp(e.exp)} ${ e.ls.map((xp) => `[${prettyPat(xp.exp1)} ${prettyExp(xp.exp2)}]`).join(' ')})`
+    case 'match': return printMatch(e)
     case 'pair': return `(cons ${prettyExp(e.exp1)} ${prettyExp(e.exp2)})`
     case 'fst': return `(fst ${prettyExp(e.exp)})`
     case 'snd': return `(snd ${prettyExp(e.exp)})`
   }
 }
 
-function prettyPat(p: any) {
-  throw new Error("Function not implemented.")
+export function prettyPat(p: Pattern): string {
+  switch (p.tag) {
+    case 'var': return `${p.value}`
+    case 'hole': return `_`
+    case 'list': return `(${p.patterns.map(prettyPat).join(' ')})`
+  }
 }
 
 /** @returns a pretty version of the value `v`, suitable for debugging. */
 export function prettyValue (v: Value): string {
   switch (v.tag) {
+    case 'string': return `"${v.value}"`
     case 'num': return `${v.value}`
     case 'bool': return v.value ? 'true' : 'false'
     case 'closure': return '<closure>'
     case 'prim': return `<prim ${v.name}>`
-    case 'list': return `'(${v.exps.map(prettyExp).join(' ')})`
-    case 'pair': return `(cons ${prettyExp(v.exp1)} ${prettyExp(v.exp2)})`
+    case 'list': return `(list ${v.values.map(prettyValue).join(' ')})`
+    case 'pair': return `(cons ${prettyValue(v.value1)} ${prettyValue(v.value2)})`
   }
 }
 
 /** @returns a pretty version of the type `t`. */
 export function prettyTyp (t: Typ): string {
   switch (t.tag) {
+    case 'str': return 'str'
     case 'nat': return 'nat'
     case 'bool': return 'bool'
     case 'arr': return `(-> ${t.inputs.map(prettyTyp).join(' ')} ${prettyTyp(t.output)})`
@@ -258,6 +287,8 @@ export function prettyProg (p: Prog): string {
 export function typEquals (t1: Typ, t2: Typ): boolean {
   if (t1.tag === 'nat' && t2.tag === 'nat') {
     return true
+  } else if (t1.tag === 'str' && t2.tag === 'str') {
+    return true
   } else if (t1.tag === 'bool' && t2.tag === 'bool') {
     return true
   } else if (t1.tag === 'arr' && t2.tag === 'arr') {
@@ -272,6 +303,8 @@ export function typEquals (t1: Typ, t2: Typ): boolean {
     return false
   }
 }
+
+
 
 /**@returns true if e1 and e2 are equivalent exp */
 // export function expEquals (e1: Exp, e2: Exp): boolean {

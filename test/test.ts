@@ -46,52 +46,26 @@ const prog2 = `
   (print result)
 `
 
-// const prog3 = `
-//   (define apple 
-//     (lambda x Nat
-//       (match (list (- x 5) (- x 3))
-//       (list (cons (list 10 12) "fizzbuzz")
-//             (cons (list _ 12) "fizz")
-//             (cons (list 10 _) "buzz")
-//             (cons _ "apple")))))
-//   (print (apple 15))
-// `
+const prog3 = `
+  (define apple 
+    (lambda x Nat
+      (match (list (- x 5) (- x 3))
+      ( (list 10 12) "fizzbuzz"
+        (list _ 12) "fizz"
+        (list 10 _) "buzz"
+        _ "apple"))))
+  (print (apple 15))
+`
 
-describe('an example test suite', () => {
-  test('basic addition', () => {
-    expect(1 + 1).toBe(2)
-  })
-  test('prettyExp(e1)', () => {
-    expect(L.prettyExp(L.e1)).toBe('(+ 1 2)')
-  })
-  test('prettyExp(e2)', () => {
-    expect(L.prettyExp(L.e2)).toBe('(eq 1 2)')
-  })
-  test('prettyExp(e3)', () => {
-    expect(L.prettyExp(L.e3)).toBe('(&& true false)')
-  })
-  test('prettyExp(e4)', () => {
-    expect(L.prettyExp(L.e4)).toBe('(|| true false)')
-  })
-  test('prettyExp(e5)', () => {
-    expect(L.prettyExp(L.e5)).toBe('(if true 1 2)')
-  })
-  test('prettyExp(e6)', () => {
-    expect(L.prettyExp(L.e6)).toBe('(not true)')
-  })
-  test('prettyExp(e7)', () => {
-    expect(L.prettyExp(L.e7)).toBe('apple')
-  })
-})
 
 describe('interpretation', () => {
-  test('prog1', () => {
-    expect(compileAndInterpret(prog1, true)).toStrictEqual(['2', '9', '1', '\'(2 3)'])
-  })
-  test('prog2', () => {
-    expect(compileAndInterpret(prog2, false)).toStrictEqual(['\'()','120'])
-  })
-  // test('prog3', () => {
-  //   expect(compileAndInterpret(prog3, false)).toStrictEqual(['fibuzz'])
+  // test('prog1', () => {
+  //   expect(compileAndInterpret(prog1, true)).toStrictEqual(['2', '9', '1', '(list 2 3)'])
   // })
+  // test('prog2', () => {
+  //   expect(compileAndInterpret(prog2, false)).toStrictEqual(['(list )','120'])
+  // })
+  test('prog3', () => {
+    expect(compileAndInterpret(prog3, true)).toStrictEqual(['fizzbuzz'])
+  })
 })

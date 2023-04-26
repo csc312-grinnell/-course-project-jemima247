@@ -11,6 +11,8 @@ export function typecheck (ctx: L.Ctx, e: L.Exp): L.Typ {
     case 'var': {
       if (ctx.has(e.value)) {
         return ctx.get(e.value)!
+      } else if (e.value[0] == "\"") {
+        return L.tystr
       } else {
         throw new Error(`Type error: unbound variable: ${e.value}`)
       }
@@ -143,7 +145,14 @@ export function typecheck (ctx: L.Ctx, e: L.Exp): L.Typ {
       }
     }
     case 'match': {
-      break
+      const t1 = typecheck(ctx, e.exp)
+      // ask about typechecking the patterns
+      const t2 = typecheck(ctx, e.exps)
+      if (t2.tag !== 'list') {
+        throw new Error(`Type error: expected list but found ${L.prettyTyp(t2)}`) 
+      } else {
+        return t2.typ[0]
+      }
     }
   }
 }
