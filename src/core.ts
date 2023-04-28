@@ -245,7 +245,7 @@ export function prettyPat(p: Pattern): string {
 /** @returns a pretty version of the value `v`, suitable for debugging. */
 export function prettyValue (v: Value): string {
   switch (v.tag) {
-    case 'string': return `"${v.value}"`
+    case 'string': return `${v.value}`
     case 'num': return `${v.value}`
     case 'bool': return v.value ? 'true' : 'false'
     case 'closure': return '<closure>'

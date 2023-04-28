@@ -135,22 +135,27 @@ export function evaluate (env: L.Env, e: L.Exp): L.Value {
     }
     case 'match': {
       const v = evaluate(env, e.exp)
-      // let holdI : number = 0
-      e.pats.forEach((pat, i) => {
-        const newenv = env.extend()
-        if (patternMatch(v, newenv, pat)) {
+      let holdI : number = 0
+      let matched : boolean = false
+      const newenv = env.extend()
+      const holdPat = e.pats
+      for (let x = 0; x < holdPat.length; x++) {
+        if (patternMatch(v, newenv, holdPat[x])) {
           console.log("matched") 
-          // holdI = i
-          const ls = evaluate(newenv, e.exps)
-          if (ls.tag !== 'list') {
-            throw new Error(`Type error: 'match' expects a list but a ${ls.tag} was given.`)
-          } else { 
-            console.log(ls.values[i])
-            return ls.values[i]
-          }
+          matched = true
+          holdI = x
+          break
         }
-      })
-      throw new Error(`Runtime error: 'match' did not match any patterns.`)
+      }
+      const ls = evaluate(newenv, e.exps)
+      if (ls.tag !== 'list') {
+        throw new Error(`Type error: 'match' expects a list but a ${ls.tag} was given.`)
+      } else if(matched) { 
+        console.log(ls.values[holdI])
+        return ls.values[holdI]
+      } else {
+        throw new Error(`Runtime error: 'match' did not match any patterns.`)
+      }
     }
   }
 }

@@ -59,13 +59,13 @@ const prog3 = `
 
 
 describe('interpretation', () => {
-  // test('prog1', () => {
-  //   expect(compileAndInterpret(prog1, true)).toStrictEqual(['2', '9', '1', '(list 2 3)'])
-  // })
-  // test('prog2', () => {
-  //   expect(compileAndInterpret(prog2, false)).toStrictEqual(['(list )','120'])
-  // })
+  test('prog1', () => {
+    expect(compileAndInterpret(prog1, true)).toStrictEqual(['2', '9', '1', '(list 2 3)'])
+  })
+  test('prog2', () => {
+    expect(compileAndInterpret(prog2, false)).toStrictEqual(['(list )','120'])
+  })
   test('prog3', () => {
-    expect(compileAndInterpret(prog3, true)).toStrictEqual(['fizzbuzz'])
+    expect(compileAndInterpret(prog3, true)).toStrictEqual(['\"fizzbuzz\"'])
   })
 })
