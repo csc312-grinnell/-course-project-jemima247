@@ -170,12 +170,27 @@ export function typecheck (ctx: L.Ctx, e: L.Exp): L.Typ {
   }
 }
 
+function randomVar (val : string) : boolean {
+  if (val === 'true' || val === 'false') {
+    return false
+  } else if (val.startsWith('"', 0) && val.endsWith('"', val.length - 1)) {
+    return false
+  } else if (!isNaN(Number(val))) {
+    return false
+  } else {
+    return true
+  }
+}
+
 export function typecheckPattern (ctx: L.Ctx, exp: L.Typ, pat: L.Pattern) : L.Typ {
   switch (exp.tag) {
     case 'bool': {
       if (pat.tag === 'var' && ( pat.value === 'true' || pat.value === 'false')) {
         return L.tybool
       } else if (pat.tag === 'hole') {
+        return L.tybool
+      } else if (pat.tag === 'var' && randomVar(pat.value)) {
+        ctx.set(pat.value, L.tybool)
         return L.tybool
       } else {
         throw new Error(`Type error: expected bool but found ${L.prettyPat(pat)}`)
@@ -186,6 +201,9 @@ export function typecheckPattern (ctx: L.Ctx, exp: L.Typ, pat: L.Pattern) : L.Ty
         return L.tynat
       } else if (pat.tag === 'hole') {
         return L.tynat
+      } else if (pat.tag === 'var' && randomVar(pat.value)) {
+        ctx.set(pat.value, L.tynat)
+        return L.tynat
       } else {
         throw new Error(`Type error: expected bool but found ${L.prettyPat(pat)}`)
       }
@@ -194,6 +212,9 @@ export function typecheckPattern (ctx: L.Ctx, exp: L.Typ, pat: L.Pattern) : L.Ty
       if (pat.tag === 'var' && pat.value.startsWith('"', 0) && pat.value.endsWith('"', pat.value.length - 1)) {
         return L.tystr
       } else if (pat.tag === 'hole') {
+        return L.tystr
+      } else if (pat.tag === 'var' && randomVar(pat.value)) {
+        ctx.set(pat.value, L.tystr)
         return L.tystr
       } else {
         throw new Error(`Type error: expected str but found ${L.prettyPat(pat)}`)
@@ -219,6 +240,25 @@ export function typecheckPattern (ctx: L.Ctx, exp: L.Typ, pat: L.Pattern) : L.Ty
               }
             })
             return L.tylist(tlist)
+          }
+        } else if (pat.patterns[0].tag === 'var' && pat.patterns[0].value === 'cons') {
+          if (pat.patterns.length === 3) {
+            const t1 = typecheckPattern(ctx, exp.typ[0], pat.patterns[1])
+            const hold2 = pat.patterns[2]
+            if (hold2.tag === 'list') {
+              // fix this patt is of form list which could be (cons ..) (pair ...) (list ...)
+              const t2 = typecheckPattern(ctx, L.tylist(exp.typ.slice(1)), hold2)
+              return L.tylist([t1].concat(t2))
+            } else if (hold2.tag === 'hole') {
+              return L.tylist([t1])
+            } else if (hold2.tag === 'var' && randomVar(hold2.value)) {
+              ctx.set(hold2.value, L.tylist(exp.typ.slice(1)))
+              return L.tylist([t1])
+            } else {
+              throw new Error(`Type error: expected cons second arg to be list but found ${L.prettyPat(pat)}`)
+            }
+          } else {
+            throw new Error(`Type error: expected cons with 2 expressions but found ${L.prettyPat(pat)}`)
           }
         } else {
           throw new Error(`Type error: expected list but found ${L.prettyPat(pat)}`)
