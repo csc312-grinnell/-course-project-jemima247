@@ -133,6 +133,15 @@ export function evaluate (env: L.Env, e: L.Exp): L.Value {
         throw new Error(`Type error: 'snd' expects a pair in guard position but a ${v.tag} was given.`)
       }
     }
+    case 'cons' : {
+      const v = evaluate(env, e.x)
+      const w = evaluate(env, e.xs)
+      if (w.tag === 'list') {
+        return L.listv([v, ...w.values])
+      } else {
+        throw new Error(`Type error: 'cons' expects a list in second position but a ${w.tag} was given.`)
+      }
+    }
     case 'match': {
       const v = evaluate(env, e.exp)
       let holdI : number = 0
@@ -192,6 +201,8 @@ export function execute (env: L.Env, prog: L.Prog): Output {
   }
   return output
 }
+
+/** @returns true if value `v` matches pattern `pat` under environment `env` */
 function patternMatch(v: L.Value, env: L.Env, pat: L.Pattern): Boolean {  
   console.log(L.prettyValue(v) + " " + L.prettyPat(pat))
   switch (pat.tag) {
@@ -203,7 +214,7 @@ function patternMatch(v: L.Value, env: L.Env, pat: L.Pattern): Boolean {
         return v.value === parseInt(pat.value)? true : false
       } else if (v.tag === 'bool' && (pat.value === 'true' || pat.value === 'false')) {
         return L.prettyValue(v) === pat.value? true : false
-      } else if (pat.value !== 'list' && v.tag !== 'list') {
+      } else if (pat.value !== 'list' && v.tag !== 'list' && pat.value !== 'pair' && v.tag !== 'pair') {
         env.set(pat.value, v)
         return true
       } else {
@@ -222,6 +233,8 @@ function patternMatch(v: L.Value, env: L.Env, pat: L.Pattern): Boolean {
             }
           }
           return true
+        } else {
+          return false
         }
       } else if (v.tag === "pair" && pat.patterns[0].tag === "var" && pat.patterns[0].value === "pair") {
         if (pat.patterns.length === 3) {

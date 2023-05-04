@@ -29,6 +29,10 @@ function plusPrim (args: L.Value[]): L.Value {
   return L.num(n1 + n2)
 }
 
+function modPrim (args: L.Value[]): L.Value {
+  const [n1, n2] = checkBinaryArithOp('%', args)
+  return L.num(n1 % n2)
+}
 function subPrim (args: L.Value[]): L.Value {
   const [n1, n2] = checkBinaryArithOp('-', args)
   return L.num(n1 - n2)
@@ -63,6 +67,7 @@ export function makeInitialEnv (): L.Env {
     ['-', L.prim('-', subPrim)],
     ['*', L.prim('*', timesPrim)],
     ['/', L.prim('/', divPrim)],
+    ['%', L.prim('%', modPrim)],
     ['zero?', L.prim('zero?', zeroPrim)]
   ]))
 }

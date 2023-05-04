@@ -146,12 +146,102 @@ export function typecheck (ctx: L.Ctx, e: L.Exp): L.Typ {
     }
     case 'match': {
       const t1 = typecheck(ctx, e.exp)
-      // ask about typechecking the patterns
+      // this should do it but how does this become non-exhaustive?
+      e.pats.forEach(pat => typecheckPattern(ctx, t1, pat))
       const t2 = typecheck(ctx, e.exps)
       if (t2.tag !== 'list') {
         throw new Error(`Type error: expected list but found ${L.prettyTyp(t2)}`) 
       } else {
         return t2.typ[0]
+      }
+    }
+    case 'cons': {
+      const t1 = typecheck(ctx, e.x)
+      const t2 = typecheck(ctx, e.xs)
+      if (t2.tag !== 'list') {
+        throw new Error(`Type error: expected list but found ${L.prettyTyp(t2)}`) 
+      } else {
+        if (!L.typEquals(t1, t2.typ[0])) {
+          throw new Error(`Type error: expected ${L.prettyTyp(t2.typ[0])} for first argument type but found ${L.prettyTyp(t1)}`)
+        }
+        return L.tylist([t1].concat(t2.typ))
+      }
+    }
+  }
+}
+
+export function typecheckPattern (ctx: L.Ctx, exp: L.Typ, pat: L.Pattern) : L.Typ {
+  switch (exp.tag) {
+    case 'bool': {
+      if (pat.tag === 'var' && ( pat.value === 'true' || pat.value === 'false')) {
+        return L.tybool
+      } else if (pat.tag === 'hole') {
+        return L.tybool
+      } else {
+        throw new Error(`Type error: expected bool but found ${L.prettyPat(pat)}`)
+      }
+    }
+    case 'nat': {
+      if (pat.tag === 'var' && !isNaN(Number(pat.value))) {
+        return L.tynat
+      } else if (pat.tag === 'hole') {
+        return L.tynat
+      } else {
+        throw new Error(`Type error: expected bool but found ${L.prettyPat(pat)}`)
+      }
+    }
+    case 'str': {
+      if (pat.tag === 'var' && pat.value.startsWith('"', 0) && pat.value.endsWith('"', pat.value.length - 1)) {
+        return L.tystr
+      } else if (pat.tag === 'hole') {
+        return L.tystr
+      } else {
+        throw new Error(`Type error: expected str but found ${L.prettyPat(pat)}`)
+      }
+    } 
+    case 'poly': {
+      throw new Error(`Type error: typ poly not supported`)
+    } 
+    case 'arr': {
+      throw new Error(`Type error: typ arr not supported`)
+    }
+    case 'list': {
+      if (pat.tag === 'list'){
+        if (pat.patterns[0].tag === 'var' && pat.patterns[0].value === 'list') {
+          if (pat.patterns.length === 1) {
+            return L.tylist([])
+          } else {
+            const t = typecheckPattern(ctx, exp.typ[0], pat.patterns[1])
+            const tlist = pat.patterns.slice(1).map(pat => typecheckPattern(ctx, exp.typ[0], pat))
+            tlist.forEach((t2) => {
+              if (!L.typEquals(t, t2)) {
+                throw new Error(`Type error: expected ${L.prettyTyp(t)} but found ${L.prettyTyp(t2)}`)
+              }
+            })
+            return L.tylist(tlist)
+          }
+        } else {
+          throw new Error(`Type error: expected list but found ${L.prettyPat(pat)}`)
+        }
+      } else if (pat.tag === 'hole') {
+        return exp
+      } else {
+        throw new Error(`Type error: expected list but found ${L.prettyPat(pat)}`)
+      }
+    }
+    case 'pair': {
+      if (pat.tag === 'list' && pat.patterns.length === 3){
+        if (pat.patterns[0].tag === 'var' && pat.patterns[0].value === 'pair') {
+          const t1 = typecheckPattern(ctx, exp.typ1, pat.patterns[1])
+          const t2 = typecheckPattern(ctx, exp.typ2, pat.patterns[2])
+          return L.typair(t1, t2)
+        } else {
+          throw new Error(`Type error: expected pair but found ${L.prettyPat(pat)}`)
+        }
+      } else if (pat.tag === 'hole') {
+        return exp
+      } else {
+        throw new Error(`Type error: expected pair with 2 expressions but found ${L.prettyPat(pat)}`)
       }
     }
   }

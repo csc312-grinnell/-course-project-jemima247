@@ -50,7 +50,7 @@ const prog3 = `
   (define apple 
     (lambda x Nat
       (match (list (- x 5) (- x 3))
-      ( (list 10 12) "fizzbuzz"
+      ( (cons 10 (list 12)) "fizzbuzz"
         (list _ 12) "fizz"
         (list 10 _) "buzz"
         _ "apple"))))

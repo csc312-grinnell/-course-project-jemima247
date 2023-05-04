@@ -33,7 +33,7 @@ export const patternList = (patterns: Pattern[]): Pattern => ({ tag: 'list', pat
 
 // Expressions
 export type Exp = Var | Num | Bool | Not | Plus | Eq | And | Or | If | Lam | App | List | 
-                  Head | Tail | Match | Pair | Fst | Snd 
+                  Head | Tail | Match | Pair | Fst | Snd | Cons
 
 export interface Var { tag: 'var', value: string }
 export const evar = (value: string): Var => ({ tag: 'var', value })
@@ -70,6 +70,9 @@ export const tail = (exp: Exp): Exp => ({ tag: 'tail', exp })
 
 export interface Pair { tag: 'pair', exp1: Exp, exp2: Exp}
 export const pair = (exp1: Exp, exp2: Exp): Exp => ({ tag: 'pair', exp1, exp2 })
+
+export interface Cons { tag: 'cons', x: Exp, xs: List}
+export const cons = (x: Exp, xs: List): Exp => ({ tag: 'cons', x, xs })
 
 export interface Fst { tag: 'fst', exp: Exp }
 export const fst = (exp: Exp): Exp => ({ tag: 'fst', exp })
@@ -228,9 +231,10 @@ export function prettyExp (e: Exp): string {
     case 'head': return `(head ${prettyExp(e.exp)})`
     case 'tail': return `(tail ${prettyExp(e.exp)})`
     case 'match': return printMatch(e)
-    case 'pair': return `(cons ${prettyExp(e.exp1)} ${prettyExp(e.exp2)})`
+    case 'pair': return `(pair ${prettyExp(e.exp1)} ${prettyExp(e.exp2)})`
     case 'fst': return `(fst ${prettyExp(e.exp)})`
     case 'snd': return `(snd ${prettyExp(e.exp)})`
+    case 'cons': return `(cons ${prettyExp(e.x)} ${prettyExp(e.xs)})`
   }
 }
 
@@ -251,7 +255,7 @@ export function prettyValue (v: Value): string {
     case 'closure': return '<closure>'
     case 'prim': return `<prim ${v.name}>`
     case 'list': return `(list ${v.values.map(prettyValue).join(' ')})`
-    case 'pair': return `(cons ${prettyValue(v.value1)} ${prettyValue(v.value2)})`
+    case 'pair': return `(pair ${prettyValue(v.value1)} ${prettyValue(v.value2)})`
   }
 }
 
@@ -263,7 +267,7 @@ export function prettyTyp (t: Typ): string {
     case 'bool': return 'bool'
     case 'arr': return `(-> ${t.inputs.map(prettyTyp).join(' ')} ${prettyTyp(t.output)})`
     case 'list': return `(list ${t.typ.map(prettyTyp).join(' ')})`
-    case 'pair': return `(cons ${prettyTyp(t.typ1)} ${prettyTyp(t.typ2)})`
+    case 'pair': return `(pair ${prettyTyp(t.typ1)} ${prettyTyp(t.typ2)})`
     case 'poly': return `(forall ${t.id}.)` //or change to just be the id
   }
 }
