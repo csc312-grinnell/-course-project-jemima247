@@ -33,7 +33,7 @@ export const patternList = (patterns: Pattern[]): Pattern => ({ tag: 'list', pat
 
 // Expressions
 export type Exp = Var | Num | Bool | Not | Plus | Eq | And | Or | If | Lam | App | List | 
-                  Head | Tail | Match | Pair | Fst | Snd | Cons
+                  Head | Tail | Match | Pair | Fst | Snd | Cons | Construct
 
 export interface Var { tag: 'var', value: string }
 export const evar = (value: string): Var => ({ tag: 'var', value })
@@ -94,6 +94,9 @@ export const lam = (param: string, typ: Typ, body: Exp): Exp =>
 export interface App { tag: 'app', head: Exp, args: Exp[] }
 export const app = (head: Exp, args: Exp[]): Exp => ({ tag: 'app', head, args })
 
+export interface Construct { tag: 'construct', id: string, exps: Exp[] }
+export const construct = (id: string, exps: Exp[]): Exp => ({ tag: 'construct', id, exps })
+
 // Values
 export type Value = StringV | Num | Bool | Closure | Prim | ListV | PairV
 
@@ -109,7 +112,7 @@ export const closure = (param: string, body: Exp, env: Env): Closure => ({ tag: 
 export const listv = (values: Value[]): ListV => ({ tag: 'list', values })
 export const pairv = (value1: Value, value2: Value): PairV => ({ tag: 'pair', value1, value2 })
 // Statements
-export type Stmt = SDefine | SPrint | SAssign 
+export type Stmt = SDefine | SPrint | SAssign | SData
 
 export interface SDefine { tag: 'define', id: string, exp: Exp }
 export const sdefine = (id: string, exp: Exp): Stmt => ({ tag: 'define', id, exp })
@@ -120,6 +123,8 @@ export const sprint = (exp: Exp): Stmt => ({ tag: 'print', exp })
 export interface SAssign { tag: 'assign', loc: Exp, exp: Exp }
 export const sassign = (loc: Exp, exp: Exp): Stmt => ({ tag: 'assign', loc, exp })
 
+export interface SData { tag: 'data', id: string, cons: Construct[] }
+export const sdata = (id: string, cons: Construct[]): Stmt => ({ tag: 'data', id, cons })
 // Programs
 export type Prog = Stmt[]
 
@@ -235,6 +240,7 @@ export function prettyExp (e: Exp): string {
     case 'fst': return `(fst ${prettyExp(e.exp)})`
     case 'snd': return `(snd ${prettyExp(e.exp)})`
     case 'cons': return `(cons ${prettyExp(e.x)} ${prettyExp(e.xs)})`
+    case 'construct': return `(${e.id} ${e.exps.map(prettyExp).join(' ')})`
   }
 }
 
@@ -278,6 +284,7 @@ export function prettyStmt (s: Stmt): string {
     case 'define': return `(define ${s.id} ${prettyExp(s.exp)})`
     case 'assign': return `(assign ${prettyExp(s.loc)} ${prettyExp(s.exp)}))`
     case 'print': return `(print ${prettyExp(s.exp)})`
+    case 'data': return `(data ${s.id} ${s.cons.map(prettyExp).join('\n')})`
   }
 }
 

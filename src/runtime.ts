@@ -77,5 +77,6 @@ export const initialCtx: L.Ctx = new Map([
   ['-', L.tyarr([L.tynat, L.tynat], L.tynat)],
   ['*', L.tyarr([L.tynat, L.tynat], L.tynat)],
   ['/', L.tyarr([L.tynat, L.tynat], L.tynat)],
+  ['%', L.tyarr([L.tynat, L.tynat], L.tynat)],
   ['zero?', L.tyarr([L.tynat], L.tybool)]
 ])

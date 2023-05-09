@@ -1,4 +1,5 @@
 import * as L from './core'
+import * as T from './typechecker'
 // import { typecheck } from './typechecker'
 
 /** The output of our programs: a list of strings that our program printed. */
@@ -214,7 +215,9 @@ function patternMatch(v: L.Value, env: L.Env, pat: L.Pattern): Boolean {
         return v.value === parseInt(pat.value)? true : false
       } else if (v.tag === 'bool' && (pat.value === 'true' || pat.value === 'false')) {
         return L.prettyValue(v) === pat.value? true : false
-      } else if (pat.value !== 'list' && v.tag !== 'list' && pat.value !== 'pair' && v.tag !== 'pair') {
+      } else if (v.tag === 'string' && pat.value.startsWith("\"", 0) && pat.value.endsWith("\"", pat.value.length - 1)) {
+        return L.prettyValue(v) === pat.value
+      } else if (pat.value !== 'list'  && pat.value !== 'pair' && pat.value !== 'cons' && T.randomVar(pat.value)) {
         env.set(pat.value, v)
         return true
       } else {
@@ -235,6 +238,16 @@ function patternMatch(v: L.Value, env: L.Env, pat: L.Pattern): Boolean {
           return true
         } else {
           return false
+        }
+      } else if (v.tag === "list" && pat.patterns[0].tag === "var" && pat.patterns[0].value === "cons") {
+        if (pat.patterns.length === 3) {
+          if (!patternMatch(v.values[0], env, pat.patterns[1])) {
+            return false
+          }
+          if (!patternMatch(L.listv(v.values.slice(1)), env, pat.patterns[2])) {
+            return false
+          }
+          return true
         }
       } else if (v.tag === "pair" && pat.patterns[0].tag === "var" && pat.patterns[0].value === "pair") {
         if (pat.patterns.length === 3) {

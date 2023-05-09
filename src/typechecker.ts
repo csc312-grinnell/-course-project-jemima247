@@ -170,7 +170,7 @@ export function typecheck (ctx: L.Ctx, e: L.Exp): L.Typ {
   }
 }
 
-function randomVar (val : string) : boolean {
+export function randomVar (val : string) : boolean {
   if (val === 'true' || val === 'false') {
     return false
   } else if (val.startsWith('"', 0) && val.endsWith('"', val.length - 1)) {

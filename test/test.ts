@@ -49,10 +49,10 @@ const prog2 = `
 const prog3 = `
   (define apple 
     (lambda x Nat
-      (match (list (- x 5) (- x 3))
-      ( (cons 10 (list 12)) "fizzbuzz"
-        (list _ 12) "fizz"
-        (list 10 _) "buzz"
+      (match (list (% x 5) (% x 3))
+      ( (cons 0 (cons 0 (list))) "fizzbuzz"
+        (list _ 0) "fizz"
+        (list 0 _) "buzz"
         _ "apple"))))
   (print (apple 15))
 `

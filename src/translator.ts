@@ -138,6 +138,14 @@ export function translateExp (e: S.Sexp): L.Exp {
       } else {
         throw new Error(`Parse error: 'cons' expects a list in second position but ${S.sexpToString(args[1])} was given`)
       }
+    } else if (head.tag === 'atom' && head.value === 'construct') {
+      if (args.length < 1) {
+        throw new Error(`Parse error: 'construct' expects at least 1 argument but ${args.length} were given`)
+      } else if (args[0].tag === 'atom' ) {
+        return L.construct(args[0].value, args.slice(1).map(translateExp))
+      } else {
+        throw new Error(`Parse error: 'construct' expects an identifier in first position but ${S.sexpToString(args[1])} was given`)
+      }
     } else if (head.tag === 'atom' && head.value === 'match') {
       if (args.length !== 2) {
         throw new Error(`Parse error: 'match' expects 2 argument but ${args.length} were given`)
@@ -197,6 +205,23 @@ export function translateStmt (e: S.Sexp): L.Stmt {
         throw new Error(`Parse error: 'print' expects 1 argument but ${args.length} were given`)
       } else {
         return L.sprint(translateExp(args[0]))
+      }
+    } else if (head.value === 'data') {
+      if (args.length <= 2) {
+        throw new Error(`Parse error: 'data' expects a name and at least 2 constructors argument but ${args.length} were given`)
+      } else if (args[0].tag !== 'atom') {
+        throw new Error("Parse error: 'data' expects its first argument to be an identifier")
+      } else {
+        const holdC = args.slice(1).map(translateExp)
+        const outC: L.Construct[] = []
+        holdC.forEach((e) => {
+          if (e.tag !== 'construct') {
+            throw new Error("Parse error: 'data' expects its argument to be a construct")
+          } else {
+            outC.push(e)
+          }
+        })
+        return L.sdata(args[0].value, outC)
       }
     } else {
       throw new Error(`Parse error: unknown statement form '${S.sexpToString(e)}'`)
