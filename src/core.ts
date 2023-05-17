@@ -4,7 +4,7 @@
 /** *** Abstract Syntax Tree ***************************************************/
 
 // Types
-export type Typ = TyStr | TyNat | TyBool | TyArr | TyList | TyPoly | TyPair 
+export type Typ = TyStr | TyNat | TyBool | TyArr | TyList | TyPair | TyConstruct | TyData
 
 export interface TyStr { tag: 'str' }
 export interface TyNat { tag: 'nat' }
@@ -12,7 +12,8 @@ export interface TyBool { tag: 'bool' }
 export interface TyArr { tag: 'arr', inputs: Typ[], output: Typ }
 export interface TyList { tag: 'list', typ: Typ[] }
 export interface TyPair { tag: 'pair', typ1: Typ, typ2: Typ }
-export interface TyPoly { tag: 'poly', id: string } // is this even needed?
+export interface TyConstruct {tag: 'construct', id: string, typs: Typ[]}
+export interface TyData {tag: 'data', id: string}
 
 export const tybool: Typ = ({ tag: 'bool' })
 export const tynat: Typ = ({ tag: 'nat' })
@@ -20,7 +21,8 @@ export const tystr: Typ = ({ tag: 'str' })
 export const tyarr = (inputs: Typ[], output: Typ): Typ => ({ tag: 'arr', inputs, output })
 export const tylist = (typ: Typ[]): Typ => ({ tag: 'list', typ })
 export const typair = (typ1: Typ, typ2: Typ): Typ => ({ tag: 'pair', typ1, typ2 })
-export const typoly = (id: string): Typ => ({ tag: 'poly', id })
+export const tyconstruct = (id: string, typs: Typ[]): Typ => ({ tag: 'construct', id, typs })
+export const tydata = (id: string): Typ => ({ tag: 'data', id})
 
 // Patterns
 export type Pattern = Var | Hole | PatternList 
@@ -98,19 +100,21 @@ export interface Construct { tag: 'construct', id: string, exps: Exp[] }
 export const construct = (id: string, exps: Exp[]): Exp => ({ tag: 'construct', id, exps })
 
 // Values
-export type Value = StringV | Num | Bool | Closure | Prim | ListV | PairV
+export type Value = StringV | Num | Bool | Closure | Prim | ListV | PairV | ConstructV
 
 export interface StringV { tag: 'string', value: string }
 export interface Prim { tag: 'prim', name: string, fn: (args: Value[]) => Value }
 export interface Closure { tag: 'closure', param: string, body: Exp, env: Env }
 export interface ListV { tag: 'list', values: Value[] }
 export interface PairV { tag: 'pair', value1: Value, value2: Value }
+export interface ConstructV { tag: 'constructv', id: string, vals: Value[] }
 
 export const stringv = (value: string): StringV => ({ tag: 'string', value })
 export const prim = (name: string, fn: (args: Value[]) => Value): Prim => ({ tag: 'prim', name, fn })
 export const closure = (param: string, body: Exp, env: Env): Closure => ({ tag: 'closure', param, body, env })
 export const listv = (values: Value[]): ListV => ({ tag: 'list', values })
 export const pairv = (value1: Value, value2: Value): PairV => ({ tag: 'pair', value1, value2 })
+export const constructv = (id: string, vals: Value[]): ConstructV => ({ tag: 'constructv', id, vals })
 // Statements
 export type Stmt = SDefine | SPrint | SAssign | SData
 
@@ -123,8 +127,8 @@ export const sprint = (exp: Exp): Stmt => ({ tag: 'print', exp })
 export interface SAssign { tag: 'assign', loc: Exp, exp: Exp }
 export const sassign = (loc: Exp, exp: Exp): Stmt => ({ tag: 'assign', loc, exp })
 
-export interface SData { tag: 'data', id: string, cons: Construct[] }
-export const sdata = (id: string, cons: Construct[]): Stmt => ({ tag: 'data', id, cons })
+export interface SData { tag: 'data', id: string, cons: TyConstruct[] }
+export const sdata = (id: string, cons: TyConstruct[]): Stmt => ({ tag: 'data', id, cons })
 // Programs
 export type Prog = Stmt[]
 
@@ -262,6 +266,7 @@ export function prettyValue (v: Value): string {
     case 'prim': return `<prim ${v.name}>`
     case 'list': return `(list ${v.values.map(prettyValue).join(' ')})`
     case 'pair': return `(pair ${prettyValue(v.value1)} ${prettyValue(v.value2)})`
+    case 'constructv': return `(${v.id}${v.vals.length > 0? " " + v.vals.map(prettyValue).join(' ') : ""})`
   }
 }
 
@@ -274,7 +279,8 @@ export function prettyTyp (t: Typ): string {
     case 'arr': return `(-> ${t.inputs.map(prettyTyp).join(' ')} ${prettyTyp(t.output)})`
     case 'list': return `(list ${t.typ.map(prettyTyp).join(' ')})`
     case 'pair': return `(pair ${prettyTyp(t.typ1)} ${prettyTyp(t.typ2)})`
-    case 'poly': return `(forall ${t.id}.)` //or change to just be the id
+    case 'construct': return `(${t.id} ${t.typs.map(prettyTyp).join(' ')})`
+    case 'data': return `(data ${t.id})`
   }
 }
 
@@ -284,7 +290,7 @@ export function prettyStmt (s: Stmt): string {
     case 'define': return `(define ${s.id} ${prettyExp(s.exp)})`
     case 'assign': return `(assign ${prettyExp(s.loc)} ${prettyExp(s.exp)}))`
     case 'print': return `(print ${prettyExp(s.exp)})`
-    case 'data': return `(data ${s.id} ${s.cons.map(prettyExp).join('\n')})`
+    case 'data': return `(data ${s.id} ${s.cons.map(prettyTyp).join('\n')})`
   }
 }
 
@@ -308,6 +314,8 @@ export function typEquals (t1: Typ, t2: Typ): boolean {
       t1.inputs.every((t, i) => typEquals(t, t2.inputs[i]))
   } else if (t1.tag === 'pair' && t2.tag === 'pair') {
     return typEquals(t1.typ1, t2.typ1) && typEquals(t1.typ2, t2.typ2)
+  } else if (t1.tag === 'data' && t2.tag === 'data') {
+    return t1.id === t2.id
   } else if (t1.tag === 'list' && t2.tag === 'list') {
     return typEquals(t1.typ[0], t2.typ[0])
   } else {
@@ -317,131 +325,3 @@ export function typEquals (t1: Typ, t2: Typ): boolean {
 
 
 
-/**@returns true if e1 and e2 are equivalent exp */
-// export function expEquals (e1: Exp, e2: Exp): boolean {
-//   switch (e1.tag) {
-//     case 'var': {
-//       if (e2.tag === 'var') {
-//         return e1.value === e2.value
-//       }
-//       return false
-//     }
-//     case 'num': {
-//       if (e2.tag === 'num') {
-//         return e1.value === e2.value
-//       }
-//       return false
-//     }
-//     case 'bool': {
-//       if (e2.tag === 'bool') {
-//         return e1.value === e2.value
-//       }
-//       return false
-//     }
-//     case 'not': {
-//       if (e2.tag === 'not') {
-//         return expEquals(e1.exp, e2.exp)
-//       }
-//       return false
-//     }
-//     case 'plus': {
-//       if (e2.tag === 'plus') {
-//         return expEquals(e1.e1, e2.e1) && expEquals(e1.e2, e2.e2)
-//       } 
-//       return false
-//     }
-//     case 'eq': {
-//       if (e2.tag === 'eq') {
-//         return expEquals(e1.e1, e2.e1) && expEquals(e1.e2, e2.e2)
-//       }
-//       return false
-//     }
-//     case 'lam': {
-//       if (e2.tag === 'lam' && typEquals(e1.typ, e2.typ)) {
-//         return expEquals(e1.body, e2.body)
-//       }
-//       return false
-//     }
-//     case 'app': {
-//       if (e2.tag === 'app' && expEquals(e1.head, e2.head)) {
-//         return e1.args.every((e, i) => expEquals(e, e2.args[i]))
-//       }
-//       return false
-//     }
-//     case 'if': {
-//       if (e2.tag === 'if') {
-//         return expEquals(e1.e1, e2.e1) && expEquals(e1.e2, e2.e2) && expEquals(e1.e3, e2.e3)
-//       }
-//       return false
-//     }
-//     case 'and': {
-//       if (e2.tag === 'and') {
-//         return expEquals(e1.e1, e2.e1) && expEquals(e1.e2, e2.e2)
-//       }
-//       return false
-//     }
-//     case 'or': {
-//       if (e2.tag === 'or') {
-//         return expEquals(e1.e1, e2.e1) && expEquals(e1.e2, e2.e2)
-//       }
-//       return false
-//     }
-//     case 'list': {
-//       if (e2.tag === 'list') {
-//         return e1.exps.length === e2.exps.length && e1.exps.every((e, i) => expEquals(e, e2.exps[i]))
-//       }
-//       return false
-//     }
-//     case 'head': {
-//       if (e2.tag === 'head') {
-//         return expEquals(e1.exp, e2.exp)
-//       }
-//       return false
-//     }
-//     case 'tail': {
-//       if (e2.tag === 'tail') {
-//         return expEquals(e1.exp, e2.exp)
-//       }
-//       return false
-//     }
-//     case 'match': {
-//       if (e2.tag === 'match') {
-//         return expEquals(e1.exp, e2.exp) && expEquals(e1.ls, e2.ls)
-//       }
-//       return false
-//     }
-//     case 'pair': {
-//       if (e2.tag === 'pair') {
-//         return expEquals(e1.exp1, e2.exp1) && expEquals(e1.exp2, e2.exp2)
-//       }
-//       return false
-//     }
-//     case 'fst': {
-//       if (e2.tag === 'fst') {
-//         return expEquals(e1.exp, e2.exp)
-//       }
-//       return false
-//     }
-//     case 'snd': {
-//       if (e2.tag === 'snd') {
-//         return expEquals(e1.exp, e2.exp)
-//       }
-//       return false
-//     }
-//   }
-// }
-
-// export function valueEquals (v1: Value, v2: Value): boolean {
-//   if (v1.tag === 'num' && v2.tag === 'num') {
-//     return v1.value === v2.value
-//   } else if (v1.tag === 'bool' && v2.tag === 'bool') {
-//     return v1.value === v2.value
-//   } else if (v1.tag === 'list' && v2.tag === 'list') {
-//     return v1.exps.length === v2.exps.length &&
-//       v1.exps.every((e, i) => expEquals(e, v2.exps[i]))
-//   } else if (v1.tag === 'pair' && v2.tag === 'pair') {
-//     return expEquals(v1.exp1, v2.exp1) && expEquals(v1.exp2, v2.exp2)
-//   } else {
-//     return false
-//   }
-// }

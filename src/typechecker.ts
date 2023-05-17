@@ -144,6 +144,29 @@ export function typecheck (ctx: L.Ctx, e: L.Exp): L.Typ {
         return t.typ2
       }
     }
+    case 'construct': {
+      if (ctx.has(e.id)) {
+        const typC = ctx.get(e.id)!
+        if (e.exps.length === 0){
+          return typC
+        } else if (typC.tag === 'arr') {
+          e.exps.forEach((exp, i) => {
+            const t = typecheck(ctx, exp)
+            console.log("what i have"+ L.prettyTyp(t))
+            console.log("what i want"+ L.prettyTyp(typC.inputs[i]))
+            if (!L.typEquals(t, typC.inputs[i])) {
+              throw new Error(`Type error: expected ${L.prettyTyp(typC.inputs[i])} but found ${L.prettyTyp(t)}`)
+            }
+          })
+          return typC.output
+        } else {
+          throw new Error(`Type error: constructor with argument not currently supported: ${e.id}`)
+        }
+      } else{
+        throw new Error(`Type error: unbound constructor: ${e.id}`)
+      }
+      
+    }
     case 'match': {
       const t1 = typecheck(ctx, e.exp)
       // this should do it but how does this become non-exhaustive?
@@ -220,9 +243,6 @@ export function typecheckPattern (ctx: L.Ctx, exp: L.Typ, pat: L.Pattern) : L.Ty
         throw new Error(`Type error: expected str but found ${L.prettyPat(pat)}`)
       }
     } 
-    case 'poly': {
-      throw new Error(`Type error: typ poly not supported`)
-    } 
     case 'arr': {
       throw new Error(`Type error: typ arr not supported`)
     }
@@ -284,6 +304,12 @@ export function typecheckPattern (ctx: L.Ctx, exp: L.Typ, pat: L.Pattern) : L.Ty
         throw new Error(`Type error: expected pair with 2 expressions but found ${L.prettyPat(pat)}`)
       }
     }
+    case 'data': {
+      throw new Error(`Type error: typ data not supported`)
+    }
+    case 'construct': {
+      throw new Error(`Type error: this takes out list expression`)
+    }
   }
 }
 
@@ -309,6 +335,24 @@ export function checkWF (ctx: L.Ctx, prog: L.Prog): void {
       case 'print': {
         typecheck(ctx, s.exp)
         break
+      }
+      case 'data': {
+        if (ctx.has(s.id)) {
+          throw new Error(`Type error: duplicate type name '${s.id}'`)
+        }
+        ctx = L.extendCtx(s.id, L.tydata(s.id), ctx)
+        s.cons.forEach((cons) => {
+          if (cons.typs.length === 0) {
+            ctx = L.extendCtx(cons.id, ctx.get(s.id)!, ctx)
+          } else {
+            cons.typs.forEach((typ) => {
+              if (typ.tag === 'data' && !ctx.has(typ.id)) {
+                throw new Error(`Type error: unbound type '${typ}'`)
+              }
+            })
+            ctx = L.extendCtx(cons.id, L.tyarr(cons.typs, ctx.get(s.id)!), ctx)
+          }
+        })
       }
     }
   })

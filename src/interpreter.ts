@@ -134,6 +134,11 @@ export function evaluate (env: L.Env, e: L.Exp): L.Value {
         throw new Error(`Type error: 'snd' expects a pair in guard position but a ${v.tag} was given.`)
       }
     }
+    case 'construct': {
+      const outv = e.exps.map((x) => evaluate(env, x))
+      return L.constructv(e.id, outv)
+      break
+    }
     case 'cons' : {
       const v = evaluate(env, e.x)
       const w = evaluate(env, e.xs)

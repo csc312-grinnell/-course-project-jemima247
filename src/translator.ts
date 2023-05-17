@@ -8,7 +8,7 @@ export function translateTyp (e: S.Sexp): L.Typ {
     } else if (e.value === 'Bool') {
       return L.tybool
     } else {
-      throw new Error(`Parse error: unknown type '${e.value}'`)
+      return L.tydata(e.value)
     }
   } else {
     const head = e.exps[0]
@@ -31,13 +31,13 @@ export function translateTyp (e: S.Sexp): L.Typ {
       } else {
         return L.typair(translateTyp(args[0]), translateTyp(args[1]))
       }
-    } else if (head.tag === 'atom' && head.value === 'forall') {
-      if (args.length !== 1) {
-        throw new Error(`Parse error: 'forall' expects 1 argument but ${args.length} were given`)
+    } else if (head.tag === 'atom' && head.value === 'construct') {
+      if (args.length <= 0) {
+        throw new Error(`Parse error: 'construct' should have atleast the identifier but ${args.length} were given`)
       } else if (args[0].tag !== 'atom') {
-        throw new Error(`Parse error: 'forall' expects an id name but '${S.sexpToString(args[0])}' was given`)
+        throw new Error(`Parse error: 'construct' expects its first argument to be an identifier but ${S.sexpToString(args[0])} was given`)
       } else {
-        return L.typoly(args[0].value)
+        return L.tyconstruct(args[0].value, args.slice(1).map(translateTyp))
       }
     } else {
       throw new Error(`Parse error: unknown type '${S.sexpToString(e)}'`)
@@ -212,8 +212,9 @@ export function translateStmt (e: S.Sexp): L.Stmt {
       } else if (args[0].tag !== 'atom') {
         throw new Error("Parse error: 'data' expects its first argument to be an identifier")
       } else {
-        const holdC = args.slice(1).map(translateExp)
-        const outC: L.Construct[] = []
+
+        const holdC = args.slice(1).map(translateTyp)
+        const outC: L.TyConstruct[] = []
         holdC.forEach((e) => {
           if (e.tag !== 'construct') {
             throw new Error("Parse error: 'data' expects its argument to be a construct")
