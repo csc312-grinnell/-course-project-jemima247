@@ -82,13 +82,13 @@ export function evaluate (env: L.Env, e: L.Exp): L.Value {
         throw new Error(`Type error: 'if' expects a boolean in guard position but a ${v.tag} was given.`)
       }
     }
-    case 'list': {
-      let out: L.Value[] = [];
-      e.exps.forEach((v) => {
-        out.push(evaluate(env, v))
-      })
-      return L.listv(out)
-    }
+    // case 'list': {
+    //   let out: L.Value[] = [];
+    //   e.exps.forEach((v) => {
+    //     out.push(evaluate(env, v))
+    //   })
+    //   return L.listv(out)
+    // }
     case 'head': {
       const v = evaluate(env, e.exp)
       if (v.tag === 'list') {
@@ -135,19 +135,28 @@ export function evaluate (env: L.Env, e: L.Exp): L.Value {
       }
     }
     case 'construct': {
-      const outv = e.exps.map((x) => evaluate(env, x))
-      return L.constructv(e.id, outv)
-      break
-    }
-    case 'cons' : {
-      const v = evaluate(env, e.x)
-      const w = evaluate(env, e.xs)
-      if (w.tag === 'list') {
-        return L.listv([v, ...w.values])
+      if (env.has(e.id)) {
+        const out = env.get(e.id)
+        if (out.tag === 'prim') {
+          const outv = e.exps.map((x) => evaluate(env, x))
+          return out.fn(outv)
+        } else {
+          throw new Error(`Runtime error: expected primitive, but found '${L.prettyValue(out)}'`)
+        }
       } else {
-        throw new Error(`Type error: 'cons' expects a list in second position but a ${w.tag} was given.`)
+        throw new Error(`Runtime error: unbound constructor '${e.id}'`)
       }
+      
     }
+    // case 'cons' : {
+    //   const v = evaluate(env, e.x)
+    //   const w = evaluate(env, e.xs)
+    //   if (w.tag === 'list') {
+    //     return L.listv([v, ...w.values])
+    //   } else {
+    //     throw new Error(`Type error: 'cons' expects a list in second position but a ${w.tag} was given.`)
+    //   }
+    // }
     case 'match': {
       const v = evaluate(env, e.exp)
       let holdI : number = 0
@@ -162,15 +171,28 @@ export function evaluate (env: L.Env, e: L.Exp): L.Value {
           break
         }
       }
-      const ls = evaluate(newenv, e.exps)
-      if (ls.tag !== 'list') {
-        throw new Error(`Type error: 'match' expects a list but a ${ls.tag} was given.`)
-      } else if(matched) { 
-        console.log(ls.values[holdI])
-        return ls.values[holdI]
+      // const ls = evaluate(newenv, e.exps)
+      // if (ls.tag !== 'list') {
+      //   throw new Error(`Type error: 'match' expects a list but a ${ls.tag} was given.`)
+      // } else 
+      if (matched) {
+        e.exps.forEach((x, i) => {
+          if (i === holdI) {
+          const out = evaluate(newenv, x)
+          console.log(out)
+          return out
+          }
+        })
       } else {
-        throw new Error(`Runtime error: 'match' did not match any patterns.`)
+          throw new Error(`Runtime error: 'match' did not match any patterns.`)
       }
+      
+      // if(matched) { 
+      //   console.log(ls.values[holdI])
+      //   return ls.values[holdI]
+      // } else {
+      //   throw new Error(`Runtime error: 'match' did not match any patterns.`)
+      // }
     }
   }
 }
@@ -201,6 +223,19 @@ export function execute (env: L.Env, prog: L.Prog): Output {
       case 'print': {
         const v = evaluate(env, s.exp)
         output.push(L.prettyValue(v))
+        break
+      }
+      case 'data': {
+        s.cons.forEach((x) => {
+          env.set(x.id, L.prim(x.id, (args: L.Value[]): L.Value => {
+            if (args.length === x.typs.length) {
+              return L.constructv(x.id, args)
+            } else {
+              throw new Error(`Runtime error: constructor '${x.id}' expects ${x.typs.length} arguments but ${args.length} were given`)
+            }
+          }))
+           
+        })
         break
       }
     }

@@ -59,8 +59,11 @@ const prog3 = `
 
 const prog4 = `
   (data List (construct Nil) (construct Cons Nat List))
+  (data ListBool (construct NilB) (construct ConsB Bool ListBool))
   (define ap (construct Cons 5 (construct Cons 3 (construct Nil))))
+  (define bp (construct ConsB true (construct ConsB false (construct NilB))))
   (print ap)
+  (print bp)
 `
 
 
@@ -75,6 +78,6 @@ describe('interpretation', () => {
   //   expect(compileAndInterpret(prog3, true)).toStrictEqual(['\"fizzbuzz\"'])
   // })
   test('prog4', () => {
-    expect(compileAndInterpret(prog4, true)).toStrictEqual(['(Cons 5 (Cons 3 (Nil)))'])
+    expect(compileAndInterpret(prog4, true)).toStrictEqual(['(Cons 5 (Cons 3 (Nil)))', '(ConsB true (ConsB false (NilB)))'])
   })
 })

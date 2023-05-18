@@ -19,12 +19,12 @@ export function translateTyp (e: S.Sexp): L.Typ {
       } else {
         return L.tyarr(args.slice(0, args.length - 1).map(translateTyp), translateTyp(args[args.length - 1]))
       }
-    } else if (head.tag === 'atom' && head.value === 'list') {
-      if (args.length === 0) {
-        return L.tylist([])
-      } else {
-        return L.tylist(args.map(translateTyp))
-      }
+    // } else if (head.tag === 'atom' && head.value === 'list') {
+    //   if (args.length === 0) {
+    //     return L.tylist([])
+    //   } else {
+    //     return L.tylist(args.map(translateTyp))
+    //   }
     } else if (head.tag === 'atom' && head.value === 'pair') {
       if (args.length !== 2) {
         throw new Error(`Parse error: 'pair' expects 2 arguments but ${args.length} were given`)
@@ -89,12 +89,12 @@ export function translateExp (e: S.Sexp): L.Exp {
       } else {
         return L.ife(translateExp(args[0]), translateExp(args[1]), translateExp(args[2]))
       }
-    } else if (head.tag === 'atom' && head.value === 'list') {
-        if (args.length === 0) {
-          return L.list([])
-        } else {
-          return L.list(args.map(translateExp))
-        }
+    // } else if (head.tag === 'atom' && head.value === 'list') {
+    //     if (args.length === 0) {
+    //       return L.list([])
+    //     } else {
+    //       return L.list(args.map(translateExp))
+    //     }
     } else if (head.tag === 'atom' && head.value === 'head') {
       if (args.length !== 1) {
         throw new Error(`Parse error: 'head' expects 1 argument but ${args.length} were given`)
@@ -125,19 +125,19 @@ export function translateExp (e: S.Sexp): L.Exp {
       } else {
         return L.snd(translateExp(args[0]))
       }
-    } else if (head.tag === 'atom' && head.value === 'cons') {
-      if (args.length !== 2) {
-        throw new Error(`Parse error: 'cons' expects 2 argument but ${args.length} were given`)
-      } else if (args[1].tag !== 'atom' ) {
-        const h = translateExp(args[1])
-        if (h.tag === 'list') {
-          return L.cons(translateExp(args[0]), h)
-        } else {
-          throw new Error(`Parse error: 'cons' expects a list in second position but ${S.sexpToString(args[1])} was given`)
-        }
-      } else {
-        throw new Error(`Parse error: 'cons' expects a list in second position but ${S.sexpToString(args[1])} was given`)
-      }
+    // } else if (head.tag === 'atom' && head.value === 'cons') {
+    //   if (args.length !== 2) {
+    //     throw new Error(`Parse error: 'cons' expects 2 argument but ${args.length} were given`)
+    //   } else if (args[1].tag !== 'atom' ) {
+    //     const h = translateExp(args[1])
+    //     if (h.tag === 'list') {
+    //       return L.cons(translateExp(args[0]), h)
+    //     } else {
+    //       throw new Error(`Parse error: 'cons' expects a list in second position but ${S.sexpToString(args[1])} was given`)
+    //     }
+    //   } else {
+    //     throw new Error(`Parse error: 'cons' expects a list in second position but ${S.sexpToString(args[1])} was given`)
+    //   }
     } else if (head.tag === 'atom' && head.value === 'construct') {
       if (args.length < 1) {
         throw new Error(`Parse error: 'construct' expects at least 1 argument but ${args.length} were given`)
@@ -168,7 +168,7 @@ export function translateExp (e: S.Sexp): L.Exp {
               holdp.push(holdpat)
               holdexp.push(exp)
             }
-            return L.match(expM, holdp, L.list(holdexp))
+            return L.match(expM, holdp, holdexp)
           }
         }
       }
