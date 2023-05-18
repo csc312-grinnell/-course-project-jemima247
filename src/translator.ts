@@ -95,18 +95,6 @@ export function translateExp (e: S.Sexp): L.Exp {
     //     } else {
     //       return L.list(args.map(translateExp))
     //     }
-    } else if (head.tag === 'atom' && head.value === 'head') {
-      if (args.length !== 1) {
-        throw new Error(`Parse error: 'head' expects 1 argument but ${args.length} were given`)
-      } else {
-        return L.head(translateExp(args[0]))
-      }
-    } else if (head.tag === 'atom' && head.value === 'tail') {
-      if (args.length !== 1) {
-        throw new Error(`Parse error: 'tail' expects 1 argument but ${args.length} were given`)
-      } else {
-        return L.tail(translateExp(args[0]))
-      }
     } else if (head.tag === 'atom' && head.value === 'pair') {
       if (args.length !== 2) {
         throw new Error(`Parse error: 'pair' expects 2 argument but ${args.length} were given`)
@@ -125,19 +113,6 @@ export function translateExp (e: S.Sexp): L.Exp {
       } else {
         return L.snd(translateExp(args[0]))
       }
-    // } else if (head.tag === 'atom' && head.value === 'cons') {
-    //   if (args.length !== 2) {
-    //     throw new Error(`Parse error: 'cons' expects 2 argument but ${args.length} were given`)
-    //   } else if (args[1].tag !== 'atom' ) {
-    //     const h = translateExp(args[1])
-    //     if (h.tag === 'list') {
-    //       return L.cons(translateExp(args[0]), h)
-    //     } else {
-    //       throw new Error(`Parse error: 'cons' expects a list in second position but ${S.sexpToString(args[1])} was given`)
-    //     }
-    //   } else {
-    //     throw new Error(`Parse error: 'cons' expects a list in second position but ${S.sexpToString(args[1])} was given`)
-    //   }
     } else if (head.tag === 'atom' && head.value === 'construct') {
       if (args.length < 1) {
         throw new Error(`Parse error: 'construct' expects at least 1 argument but ${args.length} were given`)

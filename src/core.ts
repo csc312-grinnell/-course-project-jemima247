@@ -5,25 +5,22 @@
 
 // Types
 export type Typ = TyStr | TyNat | TyBool | TyArr | TyPair | TyConstruct | TyData
-// | TyList 
 
 export interface TyStr { tag: 'str' }
 export interface TyNat { tag: 'nat' }
 export interface TyBool { tag: 'bool' }
 export interface TyArr { tag: 'arr', inputs: Typ[], output: Typ }
-// export interface TyList { tag: 'list', typ: Typ[] }
 export interface TyPair { tag: 'pair', typ1: Typ, typ2: Typ }
-export interface TyConstruct {tag: 'construct', id: string, typs: Typ[]}
-export interface TyData {tag: 'data', id: string}
+export interface TyConstruct {tag: 'construct', id: string, typs: Typ[], head?: TyData}
+export interface TyData {tag: 'data', id: string, cons?: TyConstruct[]}
 
 export const tybool: Typ = ({ tag: 'bool' })
 export const tynat: Typ = ({ tag: 'nat' })
 export const tystr: Typ = ({ tag: 'str' })
 export const tyarr = (inputs: Typ[], output: Typ): Typ => ({ tag: 'arr', inputs, output })
-// export const tylist = (typ: Typ[]): Typ => ({ tag: 'list', typ })
 export const typair = (typ1: Typ, typ2: Typ): Typ => ({ tag: 'pair', typ1, typ2 })
-export const tyconstruct = (id: string, typs: Typ[]): Typ => ({ tag: 'construct', id, typs })
-export const tydata = (id: string): Typ => ({ tag: 'data', id})
+export const tyconstruct = (id: string, typs: Typ[], head?: TyData): Typ => ({ tag: 'construct', id, typs, head })
+export const tydata = (id: string, cons?: TyConstruct[]): Typ => ({ tag: 'data', id, cons})
 
 // Patterns
 export type Pattern = Var | Hole | PatternList 
@@ -36,8 +33,8 @@ export const patternList = (patterns: Pattern[]): Pattern => ({ tag: 'list', pat
 
 // Expressions
 export type Exp = Var | Num | Bool | Not | Plus | Eq | And | Or | If | Lam | App | 
-                  Head | Tail | Match | Pair | Fst | Snd | Construct
-                  // | Cons  | List
+                  Match | Pair | Fst | Snd | Construct
+                
 
 export interface Var { tag: 'var', value: string }
 export const evar = (value: string): Var => ({ tag: 'var', value })
@@ -63,20 +60,8 @@ export const and = (e1: Exp, e2: Exp): Exp => ({ tag: 'and', e1, e2 })
 export interface Or { tag: 'or', e1: Exp, e2: Exp }
 export const or = (e1: Exp, e2: Exp): Exp => ({ tag: 'or', e1, e2 })
 
-// export interface List { tag: 'list', exps: Exp[] }
-// export const list = (exps: Exp[]): Exp => ({ tag: 'list', exps })
-
-export interface Head { tag: 'head', exp: Exp }
-export const head = (exp: Exp): Exp => ({ tag: 'head', exp })
-
-export interface Tail { tag: 'tail', exp: Exp }
-export const tail = (exp: Exp): Exp => ({ tag: 'tail', exp })
-
 export interface Pair { tag: 'pair', exp1: Exp, exp2: Exp}
 export const pair = (exp1: Exp, exp2: Exp): Exp => ({ tag: 'pair', exp1, exp2 })
-
-// export interface Cons { tag: 'cons', x: Exp, xs: List}
-// export const cons = (x: Exp, xs: List): Exp => ({ tag: 'cons', x, xs })
 
 export interface Fst { tag: 'fst', exp: Exp }
 export const fst = (exp: Exp): Exp => ({ tag: 'fst', exp })
@@ -235,14 +220,10 @@ export function prettyExp (e: Exp): string {
     case 'if': return `(if ${prettyExp(e.e1)} ${prettyExp(e.e2)} ${prettyExp(e.e3)})`
     case 'and': return `(&& ${prettyExp(e.e1)} ${prettyExp(e.e2)})`
     case 'or': return `(|| ${prettyExp(e.e1)} ${prettyExp(e.e2)})`
-    // case 'list': return `(list ${e.exps.map(prettyExp).join(' ')})`
-    case 'head': return `(head ${prettyExp(e.exp)})`
-    case 'tail': return `(tail ${prettyExp(e.exp)})`
     case 'match': return printMatch(e)
     case 'pair': return `(pair ${prettyExp(e.exp1)} ${prettyExp(e.exp2)})`
     case 'fst': return `(fst ${prettyExp(e.exp)})`
     case 'snd': return `(snd ${prettyExp(e.exp)})`
-    // case 'cons': return `(cons ${prettyExp(e.x)} ${prettyExp(e.xs)})`
     case 'construct': return `(${e.id} ${e.exps.map(prettyExp).join(' ')})`
   }
 }
@@ -263,7 +244,6 @@ export function prettyValue (v: Value): string {
     case 'bool': return v.value ? 'true' : 'false'
     case 'closure': return '<closure>'
     case 'prim': return `<prim ${v.name}>`
-    // case 'list': return `(list ${v.values.map(prettyValue).join(' ')})`
     case 'pair': return `(pair ${prettyValue(v.value1)} ${prettyValue(v.value2)})`
     case 'constructv': return `(${v.id}${v.vals.length > 0? " " + v.vals.map(prettyValue).join(' ') : ""})`
   }
@@ -276,7 +256,6 @@ export function prettyTyp (t: Typ): string {
     case 'nat': return 'nat'
     case 'bool': return 'bool'
     case 'arr': return `(-> ${t.inputs.map(prettyTyp).join(' ')} ${prettyTyp(t.output)})`
-    // case 'list': return `(list ${t.typ.map(prettyTyp).join(' ')})`
     case 'pair': return `(pair ${prettyTyp(t.typ1)} ${prettyTyp(t.typ2)})`
     case 'construct': return `(${t.id} ${t.typs.map(prettyTyp).join(' ')})`
     case 'data': return `(data ${t.id})`
@@ -317,6 +296,10 @@ export function typEquals (t1: Typ, t2: Typ): boolean {
     return t1.id === t2.id
   // } else if (t1.tag === 'list' && t2.tag === 'list') {
   //   return typEquals(t1.typ[0], t2.typ[0])
+  } else if (t1.tag === 'construct' && t2.tag === 'data') {
+    return t1.head?.id === t2.id
+  } else if (t1.tag === 'data' && t2.tag === 'construct') {
+    return t1.id === t2.head?.id
   } else {
     return false
   }

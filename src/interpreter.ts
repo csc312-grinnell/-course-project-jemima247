@@ -82,37 +82,6 @@ export function evaluate (env: L.Env, e: L.Exp): L.Value {
         throw new Error(`Type error: 'if' expects a boolean in guard position but a ${v.tag} was given.`)
       }
     }
-    // case 'list': {
-    //   let out: L.Value[] = [];
-    //   e.exps.forEach((v) => {
-    //     out.push(evaluate(env, v))
-    //   })
-    //   return L.listv(out)
-    // }
-    case 'head': {
-      const v = evaluate(env, e.exp)
-      if (v.tag === 'list') {
-        if (v.values.length === 0) {
-          throw new Error(`Runtime error: cannot take head of empty list`)
-        } else {
-          return v.values[0]
-        }
-      } else {
-        throw new Error(`Type error: 'head' expects a list in guard position but a ${v.tag} was given.`)
-      }
-    }
-    case 'tail': {
-      const v = evaluate(env, e.exp)
-      if (v.tag === 'list') {
-        if (v.values.length === 0) {
-          throw new Error(`Runtime error: cannot take tail of empty list`)
-        } else {
-          return L.listv(v.values.slice(1))
-        }
-      } else {
-        throw new Error(`Type error: 'tail' expects a list in guard position but a ${v.tag} was given.`)
-      }
-    }
     case 'pair': {
       const v = evaluate(env, e.exp1)
       const w = evaluate(env, e.exp2)
@@ -148,15 +117,6 @@ export function evaluate (env: L.Env, e: L.Exp): L.Value {
       }
       
     }
-    // case 'cons' : {
-    //   const v = evaluate(env, e.x)
-    //   const w = evaluate(env, e.xs)
-    //   if (w.tag === 'list') {
-    //     return L.listv([v, ...w.values])
-    //   } else {
-    //     throw new Error(`Type error: 'cons' expects a list in second position but a ${w.tag} was given.`)
-    //   }
-    // }
     case 'match': {
       const v = evaluate(env, e.exp)
       let holdI : number = 0
@@ -170,29 +130,14 @@ export function evaluate (env: L.Env, e: L.Exp): L.Value {
           holdI = x
           break
         }
-      }
-      // const ls = evaluate(newenv, e.exps)
-      // if (ls.tag !== 'list') {
-      //   throw new Error(`Type error: 'match' expects a list but a ${ls.tag} was given.`)
-      // } else 
+      } 
       if (matched) {
-        e.exps.forEach((x, i) => {
-          if (i === holdI) {
-          const out = evaluate(newenv, x)
-          console.log(out)
-          return out
-          }
-        })
+        const out = evaluate(newenv, e.exps[holdI])
+        console.log(out)
+        return out
       } else {
-          throw new Error(`Runtime error: 'match' did not match any patterns.`)
+        throw new Error(`Runtime error: 'match' did not match any patterns.`)
       }
-      
-      // if(matched) { 
-      //   console.log(ls.values[holdI])
-      //   return ls.values[holdI]
-      // } else {
-      //   throw new Error(`Runtime error: 'match' did not match any patterns.`)
-      // }
     }
   }
 }
@@ -257,7 +202,13 @@ function patternMatch(v: L.Value, env: L.Env, pat: L.Pattern): Boolean {
         return L.prettyValue(v) === pat.value? true : false
       } else if (v.tag === 'string' && pat.value.startsWith("\"", 0) && pat.value.endsWith("\"", pat.value.length - 1)) {
         return L.prettyValue(v) === pat.value
-      } else if (pat.value !== 'list'  && pat.value !== 'pair' && pat.value !== 'cons' && T.randomVar(pat.value)) {
+      } else if (env.has(pat.value) && v.tag === 'constructv') {
+        if (v.id === pat.value && v.vals.length === 0) {
+          return true
+        } else {
+          throw new Error(`Runtime error: constructor ${v.id} expects 0 arguments with pat ${pat.value} but ${v.vals.length} were given or the pat does not exist`)
+        }
+      } else if (pat.value !== 'pair' && T.randomVar(pat.value)) {
         env.set(pat.value, v)
         return true
       } else {
@@ -265,45 +216,34 @@ function patternMatch(v: L.Value, env: L.Env, pat: L.Pattern): Boolean {
       }
     }
     case 'list': {
-      if (v.tag === "list" && pat.patterns[0].tag === "var" && pat.patterns[0].value === "list") {
-        console.log("made into list case")
-        if (pat.patterns.length === 1 && v.values.length === 0) {
-          return true
-        } else if (pat.patterns.length - 1 === v.values.length) {
+      if (v.tag === 'constructv' && pat.patterns[0].tag === 'var' && pat.patterns[0].value === v.id) {
+        if(pat.patterns.length - 1 === v.vals.length) {
           for (let i = 0; i < (pat.patterns.length - 1); i++) {
-            if (!patternMatch(v.values[i], env, pat.patterns[i+1])) {
+            if (!patternMatch(v.vals[i], env, pat.patterns[i+1])) {
               return false
             }
           }
           return true
         } else {
-          return false
-        }
-      } else if (v.tag === "list" && pat.patterns[0].tag === "var" && pat.patterns[0].value === "cons") {
-        if (pat.patterns.length === 3) {
-          if (!patternMatch(v.values[0], env, pat.patterns[1])) {
-            return false
-          }
-          if (!patternMatch(L.listv(v.values.slice(1)), env, pat.patterns[2])) {
-            return false
-          }
-          return true
+          throw new Error(`Runtime error: constructor ${v.id} expects  ${v.vals.length} but ${pat.patterns.length - 1} arguments were given`)  
         }
       } else if (v.tag === "pair" && pat.patterns[0].tag === "var" && pat.patterns[0].value === "pair") {
         if (pat.patterns.length === 3) {
           if (!patternMatch(v.value1, env, pat.patterns[1])) {
             return false
-          }
-          if (!patternMatch(v.value2, env, pat.patterns[2])) {
+          } else if (!patternMatch(v.value2, env, pat.patterns[2])) {
             return false
+          } else {
+            return true
           }
-          return true
+        } else {
+          return false
         }
       } else {
-        throw new Error(`Runtime error: pattern matching only on list, pair, bool, num, and var`)
+        throw new Error(`Runtime error: pattern matching only on constructor, pair, bool, num, and var`)
       }
+      
     }
   }
-  return false // why is this necessary?
 }
 

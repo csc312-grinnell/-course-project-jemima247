@@ -91,40 +91,6 @@ export function typecheck (ctx: L.Ctx, e: L.Exp): L.Typ {
       }
       return t3
     }
-    // case 'list': {
-    //   if (e.exps.length === 0) {
-    //     const emptyList: L.Typ[] = []
-    //     return L.tylist(emptyList)
-    //   }
-    //   else{
-    //     const t = typecheck(ctx, e.exps[0])
-    //     const tlist = e.exps.map(exp => typecheck(ctx, exp))
-    //     tlist.forEach((t2) => {
-    //       if (!L.typEquals(t, t2)) {
-    //         throw new Error(`Type error: expected ${L.prettyTyp(t)} but found ${L.prettyTyp(t2)}`)
-    //       }
-    //     })
-    //     return L.tylist(tlist)
-    //   }
-    // }
-    case 'head': {
-      // const t = typecheck(ctx, e.exp)
-      // if (t.tag !== 'list') {
-      //   throw new Error(`Type error: expected list but found ${L.prettyTyp(t)}`) 
-      // } else {
-      //   return t.typ[0]
-      // }
-      throw new Error(`Type error: not supported`)
-    }
-    case 'tail': {
-      // const t = typecheck(ctx, e.exp)
-      // if (t.tag !== 'list') {
-      //   throw new Error(`Type error: expected list but found ${L.prettyTyp(t)}`) 
-      // } else {
-      //   return t // same thing no?
-      // }
-      throw new Error(`Type error: not supported`)
-    }
     case 'pair': {
       const t1 = typecheck(ctx, e.exp1)
       const t2 = typecheck(ctx, e.exp2)
@@ -154,13 +120,17 @@ export function typecheck (ctx: L.Ctx, e: L.Exp): L.Typ {
         } else if (typC.tag === 'arr') {
           e.exps.forEach((exp, i) => {
             const t = typecheck(ctx, exp)
-            console.log("what i have"+ L.prettyTyp(t))
-            console.log("what i want"+ L.prettyTyp(typC.inputs[i]))
+            // console.log("what i have"+ L.prettyTyp(t))
+            // console.log("what i want"+ L.prettyTyp(typC.inputs[i]))
             if (!L.typEquals(t, typC.inputs[i])) {
               throw new Error(`Type error: expected ${L.prettyTyp(typC.inputs[i])} but found ${L.prettyTyp(t)}`)
             }
           })
-          return typC.output
+          if (typC.output.tag === 'data'){
+            return L.tyconstruct(e.id, typC.inputs, typC.output)
+          } else{
+            throw new Error(`Type error: expected data type but found ${L.prettyTyp(typC.output)}`)
+          }
         } else {
           throw new Error(`Type error: constructor with argument not currently supported: ${e.id}`)
         }
@@ -172,6 +142,7 @@ export function typecheck (ctx: L.Ctx, e: L.Exp): L.Typ {
     case 'match': {
       const t1 = typecheck(ctx, e.exp)
       // this should do it but how does this become non-exhaustive?
+      console.log("t1 "+ L.prettyTyp(t1))
       e.pats.forEach(pat => typecheckPattern(ctx, t1, pat))
       const t = typecheck(ctx, e.exps[0])
       const tlist = e.exps.map(exp => typecheck(ctx, exp))
@@ -182,18 +153,6 @@ export function typecheck (ctx: L.Ctx, e: L.Exp): L.Typ {
       })
       return t
     }
-    // case 'cons': {
-    //   const t1 = typecheck(ctx, e.x)
-    //   const t2 = typecheck(ctx, e.xs)
-    //   if (t2.tag !== 'list') {
-    //     throw new Error(`Type error: expected list but found ${L.prettyTyp(t2)}`) 
-    //   } else {
-    //     if (!L.typEquals(t1, t2.typ[0])) {
-    //       throw new Error(`Type error: expected ${L.prettyTyp(t2.typ[0])} for first argument type but found ${L.prettyTyp(t1)}`)
-    //     }
-    //     return L.tylist([t1].concat(t2.typ))
-    //   }
-    // }
   }
 }
 
@@ -250,49 +209,6 @@ export function typecheckPattern (ctx: L.Ctx, exp: L.Typ, pat: L.Pattern) : L.Ty
     case 'arr': {
       throw new Error(`Type error: typ arr not supported`)
     }
-    // case 'list': {
-    //   if (pat.tag === 'list'){
-    //     if (pat.patterns[0].tag === 'var' && pat.patterns[0].value === 'list') {
-    //       if (pat.patterns.length === 1) {
-    //         return L.tylist([])
-    //       } else {
-    //         const t = typecheckPattern(ctx, exp.typ[0], pat.patterns[1])
-    //         const tlist = pat.patterns.slice(1).map(pat => typecheckPattern(ctx, exp.typ[0], pat))
-    //         tlist.forEach((t2) => {
-    //           if (!L.typEquals(t, t2)) {
-    //             throw new Error(`Type error: expected ${L.prettyTyp(t)} but found ${L.prettyTyp(t2)}`)
-    //           }
-    //         })
-    //         return L.tylist(tlist)
-    //       }
-    //     } else if (pat.patterns[0].tag === 'var' && pat.patterns[0].value === 'cons') {
-    //       if (pat.patterns.length === 3) {
-    //         const t1 = typecheckPattern(ctx, exp.typ[0], pat.patterns[1])
-    //         const hold2 = pat.patterns[2]
-    //         if (hold2.tag === 'list') {
-    //           // fix this patt is of form list which could be (cons ..) (pair ...) (list ...)
-    //           const t2 = typecheckPattern(ctx, L.tylist(exp.typ.slice(1)), hold2)
-    //           return L.tylist([t1].concat(t2))
-    //         } else if (hold2.tag === 'hole') {
-    //           return L.tylist([t1])
-    //         } else if (hold2.tag === 'var' && randomVar(hold2.value)) {
-    //           ctx.set(hold2.value, L.tylist(exp.typ.slice(1)))
-    //           return L.tylist([t1])
-    //         } else {
-    //           throw new Error(`Type error: expected cons second arg to be list but found ${L.prettyPat(pat)}`)
-    //         }
-    //       } else {
-    //         throw new Error(`Type error: expected cons with 2 expressions but found ${L.prettyPat(pat)}`)
-    //       }
-    //     } else {
-    //       throw new Error(`Type error: expected list but found ${L.prettyPat(pat)}`)
-    //     }
-    //   } else if (pat.tag === 'hole') {
-    //     return exp
-    //   } else {
-    //     throw new Error(`Type error: expected list but found ${L.prettyPat(pat)}`)
-    //   }
-    // }
     case 'pair': {
       if (pat.tag === 'list' && pat.patterns.length === 3){
         if (pat.patterns[0].tag === 'var' && pat.patterns[0].value === 'pair') {
@@ -309,10 +225,83 @@ export function typecheckPattern (ctx: L.Ctx, exp: L.Typ, pat: L.Pattern) : L.Ty
       }
     }
     case 'data': {
-      throw new Error(`Type error: typ data not supported`)
+      if (pat.tag === 'var' && ctx.has(pat.value)) {
+        const holdT = ctx.get(pat.value)!
+        if (holdT.tag === 'data') {
+          if (holdT.id === exp.id) {
+            return exp
+          } else {
+            throw new Error(`Type error: expected ${exp.id} but found ${holdT.id}`)
+          }
+        } else {
+          throw new Error(`Type error: expected data type but found ${L.prettyTyp(holdT)}`)
+        }
+      } else if (pat.tag === 'hole') {
+        return exp
+      } else if (pat.tag === 'list' && pat.patterns.length >= 1){
+        if (pat.patterns[0].tag === 'var' && ctx.has(pat.patterns[0].value)) {
+          const holdT = ctx.get(pat.patterns[0].value)!
+          if (holdT.tag === 'arr' && holdT.output.tag === 'data') {
+            pat.patterns.slice(1).forEach((pat, i) => {
+              const t = typecheckPattern(ctx, holdT.inputs[i], pat)
+            })
+            return exp
+          } else if (holdT.tag === 'data') {
+            if (holdT.id === exp.id) {
+              return exp
+            } else {
+              throw new Error(`Type error: expected ${exp.id} data type but found ${holdT.id}`)
+            }
+          } else {
+            throw new Error(`Type error: expected data type but found ${L.prettyTyp(holdT)}`)
+          }
+        } else {
+          throw new Error(`Type error: expected var to be in context but found ${L.prettyPat(pat)}`)
+        }
+      } else if (pat.tag === 'var' && randomVar(pat.value)) {
+        ctx.set(pat.value, exp)
+        return exp
+      } else {
+        throw new Error(`Type error: expected data type but found ${L.prettyPat(pat)}`)
+      }
+      // throw new Error(`Type error: typ data not supported`)
     }
     case 'construct': {
-      throw new Error(`Type error: this takes out list expression`)
+      if (exp.typs.length === 0) {
+        if (pat.tag === 'var' && pat.value === exp.id) {
+          return exp
+        } else if (pat.tag === 'hole'){
+          return exp
+        } else if (pat.tag === 'var' && randomVar(pat.value)) {
+          ctx.set(pat.value, exp)
+          return exp
+        } else {
+          throw new Error(`Type error: expected ${exp.id} but found ${L.prettyPat(pat)}`)
+        }
+      } else {
+        if (pat.tag === 'list' && pat.patterns.length >= 2) {
+          if (pat.patterns[0].tag === 'var' && pat.patterns[0].value === exp.id) {
+            exp.typs.forEach((typ, i) => {
+              const t = typecheckPattern(ctx, typ, pat.patterns[i+1])
+              // if (!L.typEquals(t, typ)) {
+              //   throw new Error(`Type error: expected ${L.prettyTyp(typ)} but found ${L.prettyTyp(t)}`)
+              // }
+            })
+            // const t1 = typecheckPattern(ctx, exp.typs[0], pat.patterns[1])
+            return exp
+          } else {
+            throw new Error(`Type error: expected ${exp.id} but found ${L.prettyPat(pat)}`)
+          }
+        } else if (pat.tag === 'hole') {
+          return exp
+        } else if (pat.tag === 'var' && randomVar(pat.value)) {
+          ctx.set(pat.value, exp)
+          return exp
+        } else {
+          throw new Error(`Type error: expected ${exp.id} but found ${L.prettyPat(pat)}`)
+        }
+      }
+      
     }
   }
 }
@@ -344,7 +333,7 @@ export function checkWF (ctx: L.Ctx, prog: L.Prog): void {
         if (ctx.has(s.id)) {
           throw new Error(`Type error: duplicate type name '${s.id}'`)
         }
-        ctx = L.extendCtx(s.id, L.tydata(s.id), ctx)
+        ctx = L.extendCtx(s.id, L.tydata(s.id, s.cons), ctx)
         s.cons.forEach((cons) => {
           if (cons.typs.length === 0) {
             ctx = L.extendCtx(cons.id, ctx.get(s.id)!, ctx)

@@ -28,15 +28,10 @@ const prog1 = `
   (print (+ x y))
   (assign x 10)
   (print (- x y))
-  (define tList (list 1 2 3))
-  (print (head tList))
-  (print (tail tList))
 `
 
 const prog2 = `
   (define result 0)
-  (define empList (list))
-  (print empList)
   (define factorial
     (lambda n Nat
       (if (zero? n)
@@ -46,17 +41,6 @@ const prog2 = `
   (print result)
 `
 
-const prog3 = `
-  (define apple 
-    (lambda x Nat
-      (match (list (% x 5) (% x 3))
-      ( (cons 0 (cons 0 (list))) "fizzbuzz"
-        (list _ 0) "fizz"
-        (list 0 _) "buzz"
-        _ "apple"))))
-  (print (apple 15))
-`
-
 const prog4 = `
   (data List (construct Nil) (construct Cons Nat List))
   (data ListBool (construct NilB) (construct ConsB Bool ListBool))
@@ -64,20 +48,25 @@ const prog4 = `
   (define bp (construct ConsB true (construct ConsB false (construct NilB))))
   (print ap)
   (print bp)
+  (define apple 
+    (lambda x Nat
+      (match (construct Cons (% x 5) (construct Cons (% x 3) (construct Nil)))
+      ( (Cons 0 (Cons 0 (Nil))) "fizzbuzz"
+        (Cons _ (Cons 0 (Nil))) "fizz"
+        (Cons 0 _) "buzz"
+        _ "apple"))))
+  (print (apple 15))
 `
 
 
 describe('interpretation', () => {
-  // test('prog1', () => {
-  //   expect(compileAndInterpret(prog1, true)).toStrictEqual(['2', '9', '1', '(list 2 3)'])
-  // })
-  // test('prog2', () => {
-  //   expect(compileAndInterpret(prog2, false)).toStrictEqual(['(list )','120'])
-  // })
-  // test('prog3', () => {
-  //   expect(compileAndInterpret(prog3, true)).toStrictEqual(['\"fizzbuzz\"'])
-  // })
+  test('prog1', () => {
+    expect(compileAndInterpret(prog1, true)).toStrictEqual(['2', '9'])
+  })
+  test('prog2', () => {
+    expect(compileAndInterpret(prog2, false)).toStrictEqual(['120'])
+  })
   test('prog4', () => {
-    expect(compileAndInterpret(prog4, true)).toStrictEqual(['(Cons 5 (Cons 3 (Nil)))', '(ConsB true (ConsB false (NilB)))'])
+    expect(compileAndInterpret(prog4, true)).toStrictEqual(['(Cons 5 (Cons 3 (Nil)))', '(ConsB true (ConsB false (NilB)))', '\"fizzbuzz\"'])
   })
 })
